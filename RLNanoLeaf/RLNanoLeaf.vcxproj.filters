@@ -90,6 +90,12 @@
     <ClCompile Include="GetAuthToken.cpp">
       <Filter>Plugin\src</Filter>
     </ClCompile>
+    <ClCompile Include="GetPanels.cpp">
+      <Filter>Plugin\src</Filter>
+    </ClCompile>
+    <ClCompile Include="HSV2RGB.cpp">
+      <Filter>Plugin\src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui\imgui_rangeslider.h">

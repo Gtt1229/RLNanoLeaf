@@ -10,6 +10,9 @@
 constexpr auto plugin_version = stringify(VERSION_MAJOR) "." stringify(VERSION_MINOR) "." stringify(VERSION_PATCH) "." stringify(VERSION_BUILD);
 
 
+constexpr auto CVAR_DEMO_COLOR = "cl_rln_demo_color";
+
+
 class RLNanoLeaf: public BakkesMod::Plugin::BakkesModPlugin
 	,public SettingsWindowBase // Uncomment if you wanna render your own tab in the settings menu
 	,public PluginWindowBase // Uncomment if you want to render your own plugin window
@@ -36,10 +39,15 @@ class RLNanoLeaf: public BakkesMod::Plugin::BakkesModPlugin
 	void ExitHook(std::string name);
 	void Replay(std::string name);
 	void NotReplay(std::string name);
-	void SendCommands(std::string event);
+	void SendCommands(std::string event, LinearColor color);
 	void GetAuthToken();
+	void GetPanels();
 	void SetAuthToken(std::string token);
 	int GetScore(int teamNum);
+	std::vector<int> PanelIDsToVector(std::string panelIdsStr);
+	void GenerateSettingsFile();
+
+
 
 public:
 	void RenderSettings() override; // Uncomment if you wanna render your own tab in the settings menu
@@ -57,6 +65,18 @@ public:
 	virtual void OnClose() override;
 	
 	//void RenderWindow() override; // Uncomment if you want to render your own plugin window
+	struct HSV {
+		int h;  // angle in degrees
+		int s;  // fraction between 0 and 1
+		int v;  // fraction between 0 and 1
+	};
+
+	struct RGB {
+		double r;  // fraction between 0 and 1
+		double g;  // fraction between 0 and 1
+		double b;  // fraction between 0 and 1
+	};
+	HSV rgb2hsv(const RGB& in);
 
 private:
 

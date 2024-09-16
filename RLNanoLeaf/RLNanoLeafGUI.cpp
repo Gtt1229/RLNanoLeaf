@@ -20,9 +20,8 @@ void RLNanoLeaf::SetImGuiContext(uintptr_t ctx) {
 //  f2 -> plugins -> RLNanoLeaf
 void RLNanoLeaf::RenderSettings() {
 
-	//Get URL related Cvars
+	//Get related Cvars
 	CVarWrapper enableCvar = cvarManager->getCvar("cl_rln_enabled");
-
 
 	CVarWrapper teamsEnableCvar = cvarManager->getCvar("cl_rln_teams_enabled");
 
@@ -40,15 +39,19 @@ void RLNanoLeaf::RenderSettings() {
 
 	CVarWrapper exitEnableCvar = cvarManager->getCvar("cl_rln_exit_enabled");
 
+	//CVarWrapper loggingEnableCvar = cvarManager->getCvar("cl_rln_logging");
+
+	CVarWrapper teamDemoColorEnableCvar = cvarManager->getCvar("cl_rln_teamDemoColor_enabled");
+
+	CVarWrapper teamGoalColorEnableCvar = cvarManager->getCvar("cl_rln_teamGoalColor_enabled");
+
 	CVarWrapper nanoLeafIPCvar = cvarManager->getCvar("cl_rln_nanoLeafIP");
+
 	CVarWrapper nanoLeafTokenCvar = cvarManager->getCvar("cl_rln_nanoLeaftoken");
+
 	CVarWrapper hideURLCvar = cvarManager->getCvar("hideURL");
 
-
-	CVarWrapper version7Cvar = cvarManager->getCvar("version7");
-	if (!version7Cvar) { return; }
-
-	bool version7 = version7Cvar.getBoolValue();
+	CVarWrapper panelIDsCvar = cvarManager->getCvar("cl_rln_panelIDs");
 
 	if (!enableCvar) { return; }
 	if (!teamsEnableCvar) { return; }
@@ -56,9 +59,29 @@ void RLNanoLeaf::RenderSettings() {
 	if (!overtimeEnableCvar) { return; }
 	if (!demosEnableCvar) { return; }
 	if (!freeplayEnableCvar) { return; }
+	if (!exitEnableCvar) { return; }
+	//if (!loggingEnableCvar) { return; }
+	if (!teamDemoColorEnableCvar) { return; }
+	if (!teamGoalColorEnableCvar) { return; }
 	if (!mainmenuEnableCvar) { return; }
 	if (!matchCountdownEnableCvar) { return; }
+	if (!panelIDsCvar) { return; }
 
+	//Colors
+	CVarWrapper demoColorVar = cvarManager->getCvar("cl_rln_demo_color");
+	if (!demoColorVar) { return; }
+	CVarWrapper goalScoredColorVar = cvarManager->getCvar("cl_rln_goalScored_color");
+	if (!goalScoredColorVar) { return; }
+	CVarWrapper freeplayColorVar = cvarManager->getCvar("cl_rln_freeplay_color");
+	if (!freeplayColorVar) { return; }
+	CVarWrapper mainmenuColorVar = cvarManager->getCvar("cl_rln_mainmenu_color");
+	if (!mainmenuColorVar) { return; }
+	CVarWrapper overtimeColorVar = cvarManager->getCvar("cl_rln_overtime_color");
+	if (!overtimeColorVar) { return; }
+	CVarWrapper matchCountdownColorVar = cvarManager->getCvar("cl_rln_matchCountdown_color");
+	if (!matchCountdownColorVar) { return; }
+	CVarWrapper exitColorVar = cvarManager->getCvar("cl_rln_exit_color");
+	if (!exitColorVar) { return; }
 
 
 
@@ -73,10 +96,7 @@ void RLNanoLeaf::RenderSettings() {
 		ImGui::SetTooltip("Toggle Plugin");
 	}
 
-
-
-
-
+	
 	//char const* currentUrl = reqhomeUrlex.data();
 
 	if (enabled == true) {
@@ -110,121 +130,239 @@ void RLNanoLeaf::RenderSettings() {
 
 		}
 
+
+
 		if (!nanoLeafTokenCvar) { return; }
 		std::string nanoLeafTokenex = nanoLeafTokenCvar.getStringValue();
 		ImGui::PushItemWidth(33.0f * ImGui::GetFontSize());
+		if (hideURL == false) {
+			if (ImGui::InputText("NanoLeaf Token", &nanoLeafTokenex)) {
 
-		if (ImGui::InputText("NanoLeaf Token", &nanoLeafTokenex)) {
+				//nanoLeafTokenCvar.setValue(nanoLeafTokenex);
 
-			nanoLeafTokenCvar.setValue(nanoLeafTokenex);
+			}
+		}
+		if (ImGui::Button("Get Panels")) {
+
+			RLNanoLeaf::GetPanels();
 
 		}
 
 
+		std::string panelIDsEx = panelIDsCvar.getStringValue();
+		ImGui::Text("Curent Panels:"); ImGui::SameLine(); ImGui::InputText("", &panelIDsEx);
+
+		ImGui::SeparatorEx(ImGuiSeparatorFlags_Horizontal);
+		//Color Settings
+
+		LinearColor demoColor = demoColorVar.getColorValue() / 255;
+		LinearColor goalScoredColor = goalScoredColorVar.getColorValue() / 255;
+		LinearColor freeplayColor = freeplayColorVar.getColorValue() / 255;
+		LinearColor mainmenuColor = mainmenuColorVar.getColorValue() / 255;
+		LinearColor overtimeColor = overtimeColorVar.getColorValue() / 255;
+		LinearColor matchCountdownColor = matchCountdownColorVar.getColorValue() / 255;
+		LinearColor exitColor = exitColorVar.getColorValue() / 255;
+
+
+		bool teamDemoColorenabled = teamDemoColorEnableCvar.getBoolValue();
+		bool teamGoalColorenabled = teamGoalColorEnableCvar.getBoolValue();
+
+
+		if (ImGui::Checkbox("Enable Demos Based on Teams' Color", &teamDemoColorenabled)) {
+			teamDemoColorEnableCvar.setValue(teamDemoColorenabled);
+		}
+		if (ImGui::IsItemHovered()) {
+			ImGui::SetTooltip("Toggle Effect");
+		}
+
+		if (!teamDemoColorenabled) {
+
+			ImGui::Text("Demos Color:");
+			ImGui::SameLine(200); if (ImGui::ColorEdit4("Demos Color", &demoColor.R, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel))
+			{
+				demoColorVar.setValue(demoColor * 255);
+			}
+
+		}
+
+		if (ImGui::Checkbox("Enable Goals Based on Teams' Color", &teamGoalColorenabled)) {
+			teamGoalColorEnableCvar.setValue(teamGoalColorenabled);
+		}
+		if (ImGui::IsItemHovered()) {
+			ImGui::SetTooltip("Toggle Effect");
+		}
+
+
+		if (!teamGoalColorenabled) {
+
+			ImGui::Text("Goals Scored Color:");
+			ImGui::SameLine(150); if (ImGui::ColorEdit4("Goals Color", &goalScoredColor.R, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel))
+			{
+				goalScoredColorVar.setValue(goalScoredColor * 255);
+			}
+
+		}
+
+		ImGui::Text("Freeplay Color:");
+		ImGui::SameLine(150); if (ImGui::ColorEdit4("Freeplay Color", &freeplayColor.R, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel))
+		{
+			freeplayColorVar.setValue(freeplayColor * 255);
+		}
+
+		ImGui::Text("Main Menu Color:");
+		ImGui::SameLine(150); if (ImGui::ColorEdit4("Main Menu Color", &mainmenuColor.R, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel))
+		{
+			mainmenuColorVar.setValue(mainmenuColor * 255);
+		}
+
+		ImGui::Text("Overtime Color:");
+		ImGui::SameLine(150); if (ImGui::ColorEdit4("Overtime Color", &overtimeColor.R, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel))
+		{
+			overtimeColorVar.setValue(overtimeColor * 255);
+		}
+
+		ImGui::Text("Match Countdown Color:");
+		ImGui::SameLine(150); if (ImGui::ColorEdit4("Match Countdown Color", &matchCountdownColor.R, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel))
+		{
+			matchCountdownColorVar.setValue(matchCountdownColor * 255);
+		}
+
+		ImGui::Text("Exit Color:");
+		ImGui::SameLine(150); if (ImGui::ColorEdit4("Exit Color", &exitColor.R, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel))
+		{
+			exitColorVar.setValue(exitColor * 255);
+		}
+
+
+		if (ImGui::Button("Test Lights")) {
+
+			RLNanoLeaf::SendCommands("test", demoColorVar.getColorValue());
+
+		}
+		//static ImVec4 color_hsv(0.23f, 1.0f, 1.0f, 1.0f);
+		
+		//ImGui::Text("Color widget with InputHSV:");
+		//ImGui::ColorEdit4("HSV shown as RGB##1", (float*)&color_hsv, ImGuiColorEditFlags_DisplayRGB | ImGuiColorEditFlags_InputHSV | ImGuiColorEditFlags_Float);
+		//ImGui::ColorEdit4("HSV shown as HSV##1", (float*)&color_hsv, ImGuiColorEditFlags_DisplayHSV | ImGuiColorEditFlags_InputHSV | ImGuiColorEditFlags_Float);
+		//ImGui::DragFloat4("Raw HSV values", (float*)&color_hsv, 0.01f, 0.0f, 1.0f);
+
+	
 		ImGui::Spacing();
 		ImGui::SeparatorEx(ImGuiSeparatorFlags_Horizontal);
-		ImGui::PushItemWidth(33.0f * ImGui::GetFontSize());
-		//Team color hook Gui
-		bool teamsEnabled = teamsEnableCvar.getBoolValue();
+		if (ImGui::CollapsingHeader("Enable Configuration Items"))
+		{
+			ImGui::PushItemWidth(33.0f * ImGui::GetFontSize());
+			//Team color hook Gui
+			bool teamsEnabled = teamsEnableCvar.getBoolValue();
 
 
-		if (ImGui::Checkbox("Enable Team Colors Effect", &teamsEnabled)) {
-			teamsEnableCvar.setValue(teamsEnabled);
+			if (ImGui::Checkbox("Enable Team Colors Effect", &teamsEnabled)) {
+				teamsEnableCvar.setValue(teamsEnabled);
+			}
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("Toggle Effect");
+			}
+
+
+			//Goal Scored hook Gui
+
+			bool goalScoredEnabled = goalScoredEnableCvar.getBoolValue();
+
+			if (ImGui::Checkbox("Enable Goal Scored Effect", &goalScoredEnabled)) {
+				goalScoredEnableCvar.setValue(goalScoredEnabled);
+			}
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("Toggle Effect");
+			}
+
+			//Demos hook Gui
+
+			bool demosEnabled = demosEnableCvar.getBoolValue();
+
+			if (ImGui::Checkbox("Enable Demos Effect", &demosEnabled)) {
+				demosEnableCvar.setValue(demosEnabled);
+			}
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("Toggle Effect");
+			}
+
+
+
+			//Overtime hook GUI
+
+			bool overtimeEnabled = overtimeEnableCvar.getBoolValue();
+
+			if (ImGui::Checkbox("Enable Overtime Effect", &overtimeEnabled)) {
+				overtimeEnableCvar.setValue(overtimeEnabled);
+			}
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("Toggle Effect");
+			}
+
+
+
+			//Freeplay hook Gui
+
+			bool freeplayEnabled = freeplayEnableCvar.getBoolValue();
+
+			if (ImGui::Checkbox("Enable Freeplay Effect", &freeplayEnabled)) {
+				freeplayEnableCvar.setValue(freeplayEnabled);
+			}
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("Toggle Effect");
+			}
+
+
+
+			//Main Menu hook Gui
+
+			bool mainmenuEnabled = mainmenuEnableCvar.getBoolValue();
+
+			if (ImGui::Checkbox("Enable Main Menu Effect", &mainmenuEnabled)) {
+				mainmenuEnableCvar.setValue(mainmenuEnabled);
+			}
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("Toggle Effect");
+			}
+
+
+
+			//matchCountdownEnableCvar hook Gui
+
+			bool matchCountdownEnabled = matchCountdownEnableCvar.getBoolValue();
+
+			if (ImGui::Checkbox("Enable Match Countdown Effect", &matchCountdownEnabled)) {
+				matchCountdownEnableCvar.setValue(matchCountdownEnabled);
+			}
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("Toggle Effect");
+			}
+
+
+
+			//Exit hook Gui
+
+			bool exitEnabled = exitEnableCvar.getBoolValue();
+
+			if (ImGui::Checkbox("Enable Game Exit Effect", &exitEnabled)) {
+				exitEnableCvar.setValue(exitEnabled);
+			}
+			if (ImGui::IsItemHovered()) {
+				ImGui::SetTooltip("Toggle Effect");
+			}
+
+			//Enable Logging
+			//
+			//bool loggingEnabled = loggingEnableCvar.getBoolValue();
+			//
+			//if (ImGui::Checkbox("Enable Logging", &loggingEnabled)) {
+			//	loggingEnableCvar.setValue(loggingEnabled);
+			//}
+			//if (ImGui::IsItemHovered()) {
+			//	ImGui::SetTooltip("Toggle Logging");
+			//}
+
 		}
-		if (ImGui::IsItemHovered()) {
-			ImGui::SetTooltip("Toggle Effect");
-		}
-
-
-		//Goal Scored hook Gui
-
-		bool goalScoredEnabled = goalScoredEnableCvar.getBoolValue();
-
-		if (ImGui::Checkbox("Enable Goal Scored Effect", &goalScoredEnabled)) {
-			goalScoredEnableCvar.setValue(goalScoredEnabled);
-		}
-		if (ImGui::IsItemHovered()) {
-			ImGui::SetTooltip("Toggle Effect");
-		}
-
-		//Demos hook Gui
-
-		bool demosEnabled = demosEnableCvar.getBoolValue();
-
-		if (ImGui::Checkbox("Enable Demos Effect", &demosEnabled)) {
-			demosEnableCvar.setValue(demosEnabled);
-		}
-		if (ImGui::IsItemHovered()) {
-			ImGui::SetTooltip("Toggle Effect");
-		}
-
-
-
-		//Overtime hook GUI
-
-		bool overtimeEnabled = overtimeEnableCvar.getBoolValue();
-
-		if (ImGui::Checkbox("Enable Overtime Effect", &overtimeEnabled)) {
-			overtimeEnableCvar.setValue(overtimeEnabled);
-		}
-		if (ImGui::IsItemHovered()) {
-			ImGui::SetTooltip("Toggle Effect");
-		}
-
-
-
-		//Freeplay hook Gui
-
-		bool freeplayEnabled = freeplayEnableCvar.getBoolValue();
-
-		if (ImGui::Checkbox("Enable Freeplay Effect", &freeplayEnabled)) {
-			freeplayEnableCvar.setValue(freeplayEnabled);
-		}
-		if (ImGui::IsItemHovered()) {
-			ImGui::SetTooltip("Toggle Effect");
-		}
-
-
-
-		//Main Menu hook Gui
-
-		bool mainmenuEnabled = mainmenuEnableCvar.getBoolValue();
-
-		if (ImGui::Checkbox("Enable Main Menu Effect", &mainmenuEnabled)) {
-			mainmenuEnableCvar.setValue(mainmenuEnabled);
-		}
-		if (ImGui::IsItemHovered()) {
-			ImGui::SetTooltip("Toggle Effect");
-		}
-
-
-
-		//matchCountdownEnableCvar hook Gui
-
-		bool matchCountdownEnabled = matchCountdownEnableCvar.getBoolValue();
-
-		if (ImGui::Checkbox("Enable Match Countdown Effect", &matchCountdownEnabled)) {
-			matchCountdownEnableCvar.setValue(matchCountdownEnabled);
-		}
-		if (ImGui::IsItemHovered()) {
-			ImGui::SetTooltip("Toggle Effect");
-		}
-
-
-
-		//Exit hook Gui
-
-		bool exitEnabled = exitEnableCvar.getBoolValue();
-
-		if (ImGui::Checkbox("Enable Game Exit Effect", &exitEnabled)) {
-			exitEnableCvar.setValue(exitEnabled);
-		}
-		if (ImGui::IsItemHovered()) {
-			ImGui::SetTooltip("Toggle Effect");
-		}
-
-
-
 	}
 
 
@@ -239,11 +377,11 @@ void RLNanoLeaf::RenderSettings() {
 
 	if (ImGui::TreeNode("Extras")) {
 
-		if (ImGui::Checkbox("Hide JSON URL", &hideURL)) {
+		if (ImGui::Checkbox("Hide IP and Token", &hideURL)) {
 			hideURLCvar.setValue(hideURL);
 		}
 		if (ImGui::IsItemHovered()) {
-			ImGui::SetTooltip("Hide JSON URL");
+			ImGui::SetTooltip("Hide IP and Token");
 		}
 
 		ImGui::TreePop();

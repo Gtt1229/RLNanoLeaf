@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "nlohmann/json.hpp"
 #include "RLNanoLeaf.h"
 #include "IMGUI/imgui_internal.h"
 #include "IMGUI/imgui_searchablecombo.h"
@@ -23,25 +24,46 @@ void RLNanoLeaf::onLoad()
 	cvarManager->registerCvar("cl_rln_matchCountdown_enabled", "1", "Enable NanoLeaf Match Countdown", true, true, 0, true, 1);
 	cvarManager->registerCvar("cl_rln_exit_enabled", "1", "Enable NanoLeaf Exit", true, true, 0, true, 1);
 	cvarManager->registerCvar("cl_rln_isReplay", "0", "NanoLeaf Replay boolean", true, true, 0, true, 1);
+	//cvarManager->registerCvar("cl_rln_logging", "0", "NanoLeaf Logging boolean", true, true, 0, true, 1);
+	cvarManager->registerCvar("cl_rln_teamDemoColor_enabled", "1", "NanoLeaf Demo Colors Based on Team Colors boolean", true, true, 0, true, 1);
+	cvarManager->registerCvar("cl_rln_teamGoalColor_enabled", "1", "NanoLeaf Goal Colors Based on Team Colors boolean", true, true, 0, true, 1);
 
 	//NanoLeaf IP Cvar
 	cvarManager->registerCvar("cl_rln_nanoLeafIP", "192.168.107.31", "NanoLeaf IP");
 	
 	//NanoLeaf Token
-	cvarManager->registerCvar("cl_rln_nanoLeaftoken", "NanoLeaf Auth Token", "NanoLeaf Auth Token");
+	cvarManager->registerCvar("cl_rln_nanoLeaftoken", "UDXADsAqC55nZFA2bcvSL7vAGepHDICz", "NanoLeaf Auth Token");
+	cvarManager->registerCvar("cl_rln_panelIDs", "12345678", "NanoLeaf Panel IDs"); //May be used in the future for addressing individual panels
 
 
 	//Team CVARs
 	cvarManager->registerCvar("cl_rln_playersTeam", "2");
 	cvarManager->registerCvar("cl_rln_otherTeam", "2");
-	cvarManager->registerCvar("cl_rln_myTeamPrimaryRGBColor", "\"r\":\"255\", \"g\":\"0\", \"b\":\"0\"");
-	cvarManager->registerCvar("cl_rln_OtherTeamPrimaryRGBColor", "\"r\":\"255\", \"g\":\"0\", \"b\":\"0\"");
+	cvarManager->registerCvar("cl_rln_myTeamPrimaryRGBColor", "(1, 1, 1, 1)");
+	cvarManager->registerCvar("cl_rln_OtherTeamPrimaryRGBColor", "(1, 1, 1, 1)");
+
+	//Color CVARs
+	cvarManager->registerCvar("cl_rln_demo_color", "(255, 153, 0, 1)", "Demo Lights Color");
+	cvarManager->registerCvar("cl_rln_goalScored_color", "(255, 0, 0, 1)", "Goal Lights Color");
+	cvarManager->registerCvar("cl_rln_freeplay_color", "(192, 67, 209, 1)", "Freeplay Lights Color");
+	cvarManager->registerCvar("cl_rln_mainmenu_color", "(0, 203, 255, 1)", "Main Menu Lights Color");
+	cvarManager->registerCvar("cl_rln_overtime_color", "(0, 203, 255, 1)", "Overtime Lights Color");
+	cvarManager->registerCvar("cl_rln_matchCountdown_color", "(255, 153, 0, 1)", "Match Countdown Lights Color");
+	cvarManager->registerCvar("cl_rln_exit_color", "(0, 0, 0, 1)", "Exit Lights Color");
+
+
+
 
 	//Log plugin started
 	this->Log("RL NanoLeaf has started");
 
 	//call LoadHooks method
 	this->LoadHooks();
+	//this->GetPanels();
+
+	//GenerateSettingsFile();
+
+
 
 }
 
@@ -57,14 +79,6 @@ void RLNanoLeaf::LoadHooks()
 			StatsHook(params);
 		});
 	//
-
-
-	/*/Chat Beta - Can be used to trigger automations based on "What a save!","Nice one!", etc,etc, not implemented:
-	gameWrapper->HookEventWithCaller<ActorWrapper>("Function TAGame.HUDBase_TA.OnChatMessage",
-		[this](ActorWrapper caller, void* params, std::string eventName) {
-			ChatHook(params);
-		});
-	/*/
 
 	//Overtime
 	gameWrapper->HookEvent("Function TAGame.GameEvent_Soccar_TA.OnOvertimeUpdated", std::bind(&RLNanoLeaf::OvertimeHook, this, std::placeholders::_1));
@@ -96,17 +110,17 @@ void RLNanoLeaf::LoadHooks()
 void RLNanoLeaf::LoadTeams(std::string name)
 {
 	//Check if plugin is enabled
-	CVarWrapper enableCvar = cvarManager->getCvar("ha_enabled");
+	CVarWrapper enableCvar = cvarManager->getCvar("cl_rln_enabled");
 	bool enabled = enableCvar.getBoolValue();
 	if (!enabled) { LOG("RLNanoLeaf is not enabled"); return; }
 
 	//See if team colors are enabled
-	CVarWrapper teamsEnabledCvar = cvarManager->getCvar("teams_enabled");
+	CVarWrapper teamsEnabledCvar = cvarManager->getCvar("cl_rln_teams_enabled");
 	bool teamsEnabled = teamsEnabledCvar.getBoolValue();
-	if (!teamsEnabled) { LOG("Team color Automations are not enabled"); return; }
+	if (!teamsEnabled) { LOG("Team color Lights are not enabled"); return; }
 
 	//Check if it is a replay (this is may be temporary to minimize log flooding on Home Assistant)
-	CVarWrapper replayCvar = cvarManager->getCvar("isReplay");
+	CVarWrapper replayCvar = cvarManager->getCvar("cl_rln_isReplay");
 	bool isReplay = replayCvar.getBoolValue();
 	if (isReplay == true) { Log("It's a replay"); return; }
 
@@ -115,7 +129,7 @@ void RLNanoLeaf::LoadTeams(std::string name)
 	//Get player team and primary color
 	if (gameWrapper->IsInFreeplay()) {
 
-		CVarWrapper freeplayEnabledCvar = cvarManager->getCvar("freeplay_enabled");
+		CVarWrapper freeplayEnabledCvar = cvarManager->getCvar("cl_rln_freeplay_enabled");
 		bool freeplayEnabled = freeplayEnabledCvar.getBoolValue();
 
 		if (freeplayEnabled == true) {
@@ -129,7 +143,7 @@ void RLNanoLeaf::LoadTeams(std::string name)
 	if (!gameWrapper->IsInFreeplay()) {
 
 
-		CVarWrapper replayCvar = cvarManager->getCvar("isReplay");
+		CVarWrapper replayCvar = cvarManager->getCvar("cl_rln_isReplay");
 		bool isReplay = replayCvar.getBoolValue();
 		if (isReplay == true) { Log("It's a replay"); return; }
 
@@ -199,11 +213,11 @@ void RLNanoLeaf::LoadTeams(std::string name)
 		float otherTeamPrimaryGreen = otherPrimaryColor.G;
 		float otherTeamPrimaryBlue = otherPrimaryColor.B;
 
-		CVarWrapper haMyTeamPrimaryRGBColorCvar = cvarManager->getCvar("ha_myTeamPrimaryRGBColor");
+		CVarWrapper haMyTeamPrimaryRGBColorCvar = cvarManager->getCvar("cl_rln_myTeamPrimaryRGBColor");
 
 		if (!haMyTeamPrimaryRGBColorCvar) { return; }
 
-		CVarWrapper haOtherTeamPrimaryRGBColorCvar = cvarManager->getCvar("ha_OtherTeamPrimaryRGBColor");
+		CVarWrapper haOtherTeamPrimaryRGBColorCvar = cvarManager->getCvar("cl_rln_OtherTeamPrimaryRGBColor");
 
 		if (!haOtherTeamPrimaryRGBColorCvar) { return; }
 
@@ -216,11 +230,12 @@ void RLNanoLeaf::LoadTeams(std::string name)
 		haOtherTeamPrimaryRGBColorCvar.setValue(otherTeamPrimaryRGB);
 
 
+
 		//get current team cvar
-		CVarWrapper ha_playersTeam = cvarManager->getCvar("ha_playersTeam");
+		CVarWrapper ha_playersTeam = cvarManager->getCvar("cl_rln_playersTeam");
 		if (!ha_playersTeam) { return; }
 
-		CVarWrapper ha_otherTeam = cvarManager->getCvar("ha_otherTeam");
+		CVarWrapper ha_otherTeam = cvarManager->getCvar("cl_rln_otherTeam");
 		if (!ha_otherTeam) { return; }
 
 
@@ -233,7 +248,7 @@ void RLNanoLeaf::LoadTeams(std::string name)
 				ha_playersTeam.setValue(teamnum);
 				ha_otherTeam.setValue(1);
 				LOG("Using Home Team Colors");
-				SendCommands(event);
+				SendCommands(event, haMyTeamPrimaryRGBColorCvar.getColorValue());
 			}
 
 			if (teamnum == 1) {
@@ -241,7 +256,7 @@ void RLNanoLeaf::LoadTeams(std::string name)
 				ha_playersTeam.setValue(teamnum);
 				ha_otherTeam.setValue(0);
 				LOG("Using Away Team Colors");
-				SendCommands(event);
+				SendCommands(event, haMyTeamPrimaryRGBColorCvar.getColorValue());
 			}
 
 		}
@@ -270,7 +285,7 @@ std::string RLNanoLeaf::ConvertLinearColor(float red, float green, float blue)
 
 
 	//Formats to JSON
-	std::string rgbColors = "\"r\":" + R + ", \"g\":" + G + ", \"b\":" + B;
+	std::string rgbColors = "("+ R + "," + G + "," + B + ",1)";
 	//LOG("These the RGB colors{}", rgbColors);
 	return rgbColors;
 
@@ -281,34 +296,45 @@ void RLNanoLeaf::StatsHook(void* params)
 {
 
 	//Check if plugin is enabled
-	CVarWrapper enableCvar = cvarManager->getCvar("ha_enabled");
+	CVarWrapper enableCvar = cvarManager->getCvar("cl_rln_enabled");
 	bool enabled = enableCvar.getBoolValue();
 
 	if (!enabled) { LOG("RLNanoLeaf is not enabled"); return; }
 
 	//See if demos are enabled
-	CVarWrapper demosEnabledCvar = cvarManager->getCvar("demos_enabled");
+	CVarWrapper demosEnabledCvar = cvarManager->getCvar("cl_rln_demos_enabled");
 	bool demosEnabled = demosEnabledCvar.getBoolValue();
 
+
 	//See if it is a replay
-	CVarWrapper replayCvar = cvarManager->getCvar("isReplay");
+	CVarWrapper replayCvar = cvarManager->getCvar("cl_rln_isReplay");
 	bool isReplay = replayCvar.getBoolValue();
 	if (isReplay == true) { Log("It's a replay"); return; }
 
 	//Current team CVAR
 	//get current team cvar
-	CVarWrapper ha_playersTeam = cvarManager->getCvar("ha_playersTeam");
+	CVarWrapper ha_playersTeam = cvarManager->getCvar("cl_rln_playersTeam");
 	if (!ha_playersTeam) { return; }
 	//
-	auto haplayersTeam = cvarManager->getCvar("ha_playersTeam");
+	auto haplayersTeam = cvarManager->getCvar("cl_rln_playersTeam");
+	if (!haplayersTeam) { return; }
 	int haplayersTeam2 = haplayersTeam.getIntValue();
 
 	//get current otherteam cvar
-	CVarWrapper ha_otherTeam = cvarManager->getCvar("ha_otherTeam");
+	CVarWrapper ha_otherTeam = cvarManager->getCvar("cl_rln_otherTeam");
 	if (!ha_otherTeam) { return; }
 	//
-	auto haotherTeam = cvarManager->getCvar("ha_otherTeam");
+	auto haotherTeam = cvarManager->getCvar("cl_rln_otherTeam");
+	if (!haotherTeam) { return; }
 	int haotherTeam2 = haotherTeam.getIntValue();
+
+
+	CVarWrapper teamDemoColorEnabledCvar = cvarManager->getCvar("cl_rln_teamDemoColor_enabled");
+	bool teamDemoColorEnabled = teamDemoColorEnabledCvar.getBoolValue();
+
+	CVarWrapper teamGoalColorEnabledCvar = cvarManager->getCvar("cl_rln_teamGoalColor_enabled");
+	bool teamGoalColorEnabled = teamGoalColorEnabledCvar.getBoolValue();
+
 
 	//setup teamwrapper
 
@@ -334,18 +360,26 @@ void RLNanoLeaf::StatsHook(void* params)
 	PriWrapper victim = PriWrapper(pStruct->Victim);
 	StatEventWrapper statEvent = StatEventWrapper(pStruct->StatEvent);
 
+	//Get team colors
 
+	CVarWrapper haMyTeamPrimaryRGBColorCvar = cvarManager->getCvar("cl_rln_myTeamPrimaryRGBColor");
+	if (!haMyTeamPrimaryRGBColorCvar) { return; }
+	LinearColor haMyTeamPrimaryRGBColor = haMyTeamPrimaryRGBColorCvar.getColorValue();
+
+	CVarWrapper haOtherTeamPrimaryRGBColorCvar = cvarManager->getCvar("cl_rln_OtherTeamPrimaryRGBColor");
+	if (!haOtherTeamPrimaryRGBColorCvar) { return; }
+	LinearColor haOtherTeamPrimaryRGBColor = haOtherTeamPrimaryRGBColorCvar.getColorValue();
 
 	//LOG("StatEventOccured");
 	if (statEvent.GetEventName() == "Goal") {
-
+		LOG("goalScored lights active");
 		//See if Goal Scored hook is enabled
-		CVarWrapper goalScoredEnabledCvar = cvarManager->getCvar("goalScored_enabled");
+		CVarWrapper goalScoredEnabledCvar = cvarManager->getCvar("cl_rln_goalScored_enabled");
 		bool goalScoredEnabled = goalScoredEnabledCvar.getBoolValue();
-		if (!goalScoredEnabled) { LOG("goalScored Automations are not enabled"); return; }
+		if (!goalScoredEnabled) { LOG("goalScored Lights are not enabled"); return; }
 
 		//See if it is a replay
-		CVarWrapper replayCvar = cvarManager->getCvar("isReplay");
+		CVarWrapper replayCvar = cvarManager->getCvar("cl_rln_isReplay");
 		bool isReplay = replayCvar.getBoolValue();
 		if (isReplay == true) { Log("It's a replay"); return; }
 
@@ -353,35 +387,73 @@ void RLNanoLeaf::StatsHook(void* params)
 		int tmpCounter = 0;
 		int lastGoalScoredBy = receiver.GetTeamNum();
 
+		CVarWrapper goalScoredColorVar = cvarManager->getCvar("cl_rln_goalScored_color");
+		if (!goalScoredColorVar) { return; }
+		LinearColor goalScoredColor = goalScoredColorVar.getColorValue();
+
+
+
+
+		LOG("goalScored lights active");
+
+		std::string event = "goal";
+
+
+
 		//Compare team number to players team to decide who scored
-		if (lastGoalScoredBy <= 1) {
 
-			if (lastGoalScoredBy == haplayersTeam2) {
-				std::string event = "teamScored";
-				LOG("Your team scored");
-				SendCommands(event);
+		if (teamGoalColorEnabled)
+		{
+
+			if (lastGoalScoredBy <= 1) {
+
+				if (lastGoalScoredBy == haplayersTeam2) {
+					std::string event = "temaScored";
+					LOG("Your team scored");
+
+					goalScoredColor.R = (haMyTeamPrimaryRGBColor.R + ((255 - haMyTeamPrimaryRGBColor.R) / 2));
+					goalScoredColor.G = (haMyTeamPrimaryRGBColor.G + ((255 - haMyTeamPrimaryRGBColor.G) / 2));
+					goalScoredColor.B = (haMyTeamPrimaryRGBColor.B + ((255 - haMyTeamPrimaryRGBColor.B) / 2));
+
+					SendCommands(event, goalScoredColor);
+
+
+
+				}
+
+				if (lastGoalScoredBy != haplayersTeam2) {
+					std::string event = "otherTeamScored";
+					LOG("Other team scored");
+
+
+					goalScoredColor.R = (haOtherTeamPrimaryRGBColor.R + ((255 - haOtherTeamPrimaryRGBColor.R) / 2));
+					goalScoredColor.G = (haOtherTeamPrimaryRGBColor.G + ((255 - haOtherTeamPrimaryRGBColor.G) / 2));
+					goalScoredColor.B = (haOtherTeamPrimaryRGBColor.B + ((255 - haOtherTeamPrimaryRGBColor.B) / 2));
+
+
+					SendCommands(event, goalScoredColor);
+				}
+
 			}
-
-			if (lastGoalScoredBy != haplayersTeam2) {
-				std::string event = "otherTeamScored";
-				LOG("Other team scored");
-				SendCommands(event);
-			}
-
+		}
+		else
+		{
+			SendCommands(event, goalScoredColor);
 		}
 
-		LOG("Other Team's Score: {}", teams.Get(haotherTeam2).GetScore());
-		LOG("Your Team's Score: {}", teams.Get(haplayersTeam2).GetScore());
 
-		LOG("Using Goals Hook", lastGoalScoredBy);
+		//LOG("Other Team's Score: {}", teams.Get(haotherTeam2).GetScore());
+		//LOG("Your Team's Score: {}", teams.Get(haplayersTeam2).GetScore());
+		//
+		//LOG("Using Goals Hook", lastGoalScoredBy);
 	}
 	//LOG("{}", statEvent.GetEventName());
 
 	if (statEvent.GetEventName() == "Demolish") {
 		LOG("Demo Occured");
-		CVarWrapper demosEnabledCvar = cvarManager->getCvar("demos_enabled");
+		CVarWrapper demosEnabledCvar = cvarManager->getCvar("cl_rln_demos_enabled");
 		bool demosEnabled = demosEnabledCvar.getBoolValue();
-		if (!demosEnabled) { LOG("Demos Automations are not enabled"); return; }
+		if (!demosEnabled) { LOG("Demos Lights are not enabled"); return; }
 
 		if (!receiver) { LOG("Null reciever PRI"); return; }
 		if (!victim) { LOG("Null victim PRI"); return; }
@@ -401,85 +473,66 @@ void RLNanoLeaf::StatsHook(void* params)
 		//LOG("victim: {}", victimsTeam);
 		//LOG("Current team number: {}", currentTeam);
 
-		if (receiversTeam == haplayersTeam2) {
-			std::string event = "teamDemoed";
-			LOG("Using Demos Hook");
-			SendCommands(event);
-		}
+		CVarWrapper demoColorVar = cvarManager->getCvar("cl_rln_demo_color");
+		if (!demoColorVar) { return; }
+		LinearColor demoColor = demoColorVar.getColorValue();
+		std::string event = "demo";
 
-		if (receiversTeam != haplayersTeam2) {
-			std::string event = "gotDemoed";
-			LOG("Using Demos Hook");
-			SendCommands(event);
+		if (teamDemoColorEnabled) {
+			if (receiversTeam == haplayersTeam2) {
+				std::string event = "teamDemoed";
+				LOG("Using Demos Hook");
+
+				demoColor.R = (haMyTeamPrimaryRGBColor.R + ((255 - haMyTeamPrimaryRGBColor.R) / 2));
+				demoColor.G = (haMyTeamPrimaryRGBColor.G + ((255 - haMyTeamPrimaryRGBColor.G) / 2));
+				demoColor.B = (haMyTeamPrimaryRGBColor.B + ((255 - haMyTeamPrimaryRGBColor.B) / 2));
+
+				SendCommands(event, demoColor);
+			}
+
+			if (receiversTeam != haplayersTeam2) {
+				std::string event = "gotDemoed";
+				LOG("Using Demos Hook");
+
+				demoColor.R = (haMyTeamPrimaryRGBColor.R + ((255 - haMyTeamPrimaryRGBColor.R) / 2));
+				demoColor.G = (haMyTeamPrimaryRGBColor.G + ((255 - haMyTeamPrimaryRGBColor.G) / 2));
+				demoColor.B = (haMyTeamPrimaryRGBColor.B + ((255 - haMyTeamPrimaryRGBColor.B) / 2));
+
+				SendCommands(event, demoColor);
+			}
+		}
+		else {
+
+			SendCommands(event, demoColor);
 		}
 
 	}
 
 }
-
-/*
-//=================================
-// Quickchat-based automation prep. May not be implemented
-struct ChatMessage
-{
-	void* PRI;
-	void* Team;
-	wchar_t* PlayerName;
-	uint8_t PlayerNamePadding[0x8];
-	wchar_t* Message;
-	uint8_t MessagePadding[0x8];
-	uint8_t ChatChannel;
-	unsigned long bPreset : 1;
-};
-
-void RLNanoLeaf::ChatHook(void* params)
-{
-
-	if (params)
-	{
-		ChatMessage* chatMessage = static_cast<ChatMessage*>(params);
-		if (chatMessage->PlayerName == nullptr) return;
-		std::wstring playerName(chatMessage->PlayerName);
-		if (chatMessage->Message == nullptr) return;
-		std::wstring message(chatMessage->Message);
-		std::string bMessage(message.begin(), message.end());
-		cvarManager->log("Message: " + bMessage);
-		//std::string whatasave = "Group2Message4";
-		//
-		//
-		//int isWhatASave = whatasave.compare(bMessage);
-		//
-		//if (isWhatASave == 0) {
-		//
-		//	cvarManager->log("Get What a Saved'd");
-		//
-		//}
-	}
-
-}
-//=================================
-*/
-
 
 void RLNanoLeaf::FreeplayHook()
 {
 	//Check if plugin is enabled
-	CVarWrapper enableCvar = cvarManager->getCvar("ha_enabled");
+	CVarWrapper enableCvar = cvarManager->getCvar("cl_rln_enabled");
 	bool enabled = enableCvar.getBoolValue();
 	if (!enabled) { LOG("RLNanoLeaf is not enabled"); return; }
 
 	//See if FreePlay Hooks are enabled
-	CVarWrapper freeplay_enabledCvar = cvarManager->getCvar("freeplay_enabled");
+	CVarWrapper freeplay_enabledCvar = cvarManager->getCvar("cl_rln_freeplay_enabled");
 	bool freeplay_enabled = freeplay_enabledCvar.getBoolValue();
-	if (!freeplay_enabled) { LOG("Freeplay Automations are not enabled"); return; }
+	if (!freeplay_enabled) { LOG("Freeplay Lights are not enabled"); return; }
+
+	CVarWrapper freeplayColorVar = cvarManager->getCvar("cl_rln_freeplay_color");
+	if (!freeplayColorVar) { return; }
+	LinearColor freeplayColor = freeplayColorVar.getColorValue();
 
 	//May be redundant, but good to check
 	if (gameWrapper->IsInFreeplay()) {
 
-		//Get freeplay automation url, transform, and convert to string
+		//Send freeplay color
 		std::string event = "freeplay";
 		LOG("Sending freeplay commands");
-		SendCommands(event);
+		SendCommands(event, freeplayColor);
 
 	}
 }
@@ -487,34 +540,23 @@ void RLNanoLeaf::FreeplayHook()
 void RLNanoLeaf::MainMenuHook(std::string name)
 {
 
-
-
-	//Marked for removal in future revision
-	// 
-	//CVarWrapper updateBoolcvar = cvarManager->getCvar("updateModal_enabled");
-	//bool updateBool = updateBoolcvar.getBoolValue();
-	////LOG("Rocket League Assistant Update Boolean: {}", updateBool);
-	//if (updateBool == false) {
-	//	UpdateModal();
-	//}
-
 	LOG("MainMenu Hook");
 
 	//Check if plugin is enabled
-	CVarWrapper enableCvar = cvarManager->getCvar("ha_enabled");
+	CVarWrapper enableCvar = cvarManager->getCvar("cl_rln_enabled");
 	bool enabled = enableCvar.getBoolValue();
 
 	if (!enabled) { LOG("RLNanoLeaf is not enabled"); return; }
 
 	//See if main menu hook is enabled
-	CVarWrapper mainmenuEnabledCvar = cvarManager->getCvar("mainmenu_enabled");
+	CVarWrapper mainmenuEnabledCvar = cvarManager->getCvar("cl_rln_mainmenu_enabled");
 	bool mainmenuEnabled = mainmenuEnabledCvar.getBoolValue();
-	if (!mainmenuEnabled) { LOG("Main Menu Automations are not enabled"); return; }
+	if (!mainmenuEnabled) { LOG("Main Menu Lights are not enabled"); return; }
 
 	//Check if player is in Freeplay (This is checked because the MainMenuHook function is called from the cancellation of matchmaking)
 	if (gameWrapper->IsInFreeplay()) {
 
-		CVarWrapper freeplayEnabledCvar = cvarManager->getCvar("freeplay_enabled");
+		CVarWrapper freeplayEnabledCvar = cvarManager->getCvar("cl_rln_freeplay_enabled");
 		bool freeplayEnabled = freeplayEnabledCvar.getBoolValue();
 
 		if (freeplayEnabled == true) {
@@ -528,7 +570,7 @@ void RLNanoLeaf::MainMenuHook(std::string name)
 	//Check if player is in a game (This is checked because the MainMenuHook function is called from the cancellation of matchmaking)
 	if ((gameWrapper->IsInGame()) || (gameWrapper->IsInOnlineGame())) {
 
-		CVarWrapper teamsEnabledCvar = cvarManager->getCvar("teams_enabled");
+		CVarWrapper teamsEnabledCvar = cvarManager->getCvar("cl_rln_teams_enabled");
 		bool teamsEnabled = teamsEnabledCvar.getBoolValue();
 
 		if (teamsEnabled == true) {
@@ -539,50 +581,62 @@ void RLNanoLeaf::MainMenuHook(std::string name)
 
 	}
 
-	//Get mainmenu automation url, transform, and convert to string
+	CVarWrapper mainmenuColorVar = cvarManager->getCvar("cl_rln_mainmenu_color");
+	if (!mainmenuColorVar) { return; }
+	LinearColor mainmenuColor = mainmenuColorVar.getColorValue();
+
+	//Send mainmenu color
 	std::string event = "mainmenu";
 	LOG("Using Main Menu Hook");
-	SendCommands(event);
+	SendCommands(event, mainmenuColor);
 
 }
 
 void RLNanoLeaf::MatchCountdownHook(std::string name)
 {
 	//Check if plugin is enabled
-	CVarWrapper enableCvar = cvarManager->getCvar("ha_enabled");
+	CVarWrapper enableCvar = cvarManager->getCvar("cl_rln_enabled");
 	bool enabled = enableCvar.getBoolValue();
 	if (!enabled) { LOG("RLNanoLeaf is not enabled"); return; }
 
 	//See if MatchCountdown Hooks are enabled
-	CVarWrapper matchCountdown_enabledCvar = cvarManager->getCvar("matchCountdown_enabled");
+	CVarWrapper matchCountdown_enabledCvar = cvarManager->getCvar("cl_rln_matchCountdown_enabled");
 	bool matchCountdown_enabled = matchCountdown_enabledCvar.getBoolValue();
-	if (!matchCountdown_enabled) { LOG("Match Countdown Automations are not enabled"); return; }
+	if (!matchCountdown_enabled) { LOG("Match Countdown Lights are not enabled"); return; }
 
-	//Get MatchCountdown automation url, transform, and convert to string
+	CVarWrapper matchCountdownColorVar = cvarManager->getCvar("cl_rln_matchCountdown_color");
+	if (!matchCountdownColorVar) { return; }
+	LinearColor matchCountdownColor = matchCountdownColorVar.getColorValue();
+
+	//Send matchcountdown color
 	std::string event = "matchcountdown";
 	LOG("Using Match Countdown Hook");
-	SendCommands(event);
+	SendCommands(event, matchCountdownColor);
 
 }
 
 void RLNanoLeaf::OvertimeHook(std::string name)
 {
 	//Check if plugin is enabled
-	CVarWrapper enableCvar = cvarManager->getCvar("ha_enabled");
+	CVarWrapper enableCvar = cvarManager->getCvar("cl_rln_enabled");
 	bool enabled = enableCvar.getBoolValue();
 
 	if (!enabled) { LOG("RLNanoLeaf is not enabled"); return; }
 
 
 	//See if overtime hook is enabled
-	CVarWrapper overtimeEnabledCvar = cvarManager->getCvar("overtime_enabled");
+	CVarWrapper overtimeEnabledCvar = cvarManager->getCvar("cl_rln_overtime_enabled");
 	bool overtimeEnabled = overtimeEnabledCvar.getBoolValue();
-	if (!overtimeEnabled) { LOG("Overtime Automations are not enabled"); return; }
+	if (!overtimeEnabled) { LOG("Overtime Lights are not enabled"); return; }
 
-	//Get overtime automation url, transform, and convert to string
+	CVarWrapper overtimeColorVar = cvarManager->getCvar("cl_rln_overtime_color");
+	if (!overtimeColorVar) { return; }
+	LinearColor overtimeColor = overtimeColorVar.getColorValue();
+
+	//Send overtime color
 	std::string event = "overtime";
 	LOG("Using Overtime Hook");
-	SendCommands(event);
+	SendCommands(event, overtimeColor);
 
 
 
@@ -592,19 +646,23 @@ void RLNanoLeaf::ExitHook(std::string name)
 {
 
 	//Check if plugin is enabled
-	CVarWrapper enableCvar = cvarManager->getCvar("ha_enabled");
+	CVarWrapper enableCvar = cvarManager->getCvar("cl_rln_enabled");
 	bool enabled = enableCvar.getBoolValue();
 
 	if (!enabled) { LOG("RLNanoLeaf is not enabled"); return; }
 
 	//See if exit hook is enabled
-	CVarWrapper exitEnabledCvar = cvarManager->getCvar("exit_enabled");
+	CVarWrapper exitEnabledCvar = cvarManager->getCvar("cl_rln_exit_enabled");
 	bool exitEnabled = exitEnabledCvar.getBoolValue();
-	if (!exitEnabled) { LOG("Exit Automations are not enabled"); return; }
+	if (!exitEnabled) { LOG("Exit Lights are not enabled"); return; }
+
+	CVarWrapper exitColorVar = cvarManager->getCvar("cl_rln_exit_color");
+	if (!exitColorVar) { return; }
+	LinearColor exitColor = exitColorVar.getColorValue();
 
 	std::string event = "exit";
 	LOG("Using Exit Hook");
-	SendCommands(event);
+	SendCommands(event, exitColor);
 
 }
 
@@ -612,7 +670,7 @@ void RLNanoLeaf::ExitHook(std::string name)
 void RLNanoLeaf::Replay(std::string name)
 {
 	//LOG("Replay start");
-	CVarWrapper replayCvar = cvarManager->getCvar("isReplay");
+	CVarWrapper replayCvar = cvarManager->getCvar("cl_rln_isReplay");
 	bool isReplay = replayCvar.getBoolValue();
 	isReplay = true;
 	//LOG("{}", isReplay);
@@ -624,7 +682,7 @@ void RLNanoLeaf::Replay(std::string name)
 void RLNanoLeaf::NotReplay(std::string name)
 {
 	//LOG("Replay ended");
-	CVarWrapper replayCvar = cvarManager->getCvar("isReplay");
+	CVarWrapper replayCvar = cvarManager->getCvar("cl_rln_isReplay");
 	bool isReplay = replayCvar.getBoolValue();
 	isReplay = false;
 	//LOG("{}", isReplay);
@@ -655,6 +713,24 @@ int RLNanoLeaf::GetScore(int teamNum)
 
 }
 
+std::vector<int> RLNanoLeaf::PanelIDsToVector(std::string panelIdsStr) {
+	////////   This is not currently used ///////////
+	// Vector to store the parsed integers
+	std::vector<int> panelIDs;
+
+	// Create a stringstream from the input string
+	std::istringstream iss(panelIdsStr);
+
+	// Extract integers from the stream and push them into the vector
+	int id;
+	while (iss >> id) {
+		panelIDs.push_back(id);
+	}
+
+	// Return the vector
+	return panelIDs;
+
+}
 
 void RLNanoLeaf::Log(std::string msg)
 {

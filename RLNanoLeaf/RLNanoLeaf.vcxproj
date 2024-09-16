@@ -98,6 +98,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="GetAuthToken.cpp" />
+    <ClCompile Include="GetPanels.cpp" />
+    <ClCompile Include="HSV2RGB.cpp" />
     <ClCompile Include="SendCommands.cpp" />
     <ClCompile Include="imgui\imgui.cpp" />
     <ClCompile Include="imgui\imguivariouscontrols.cpp" />
