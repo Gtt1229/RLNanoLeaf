@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "nlohmann/json.hpp"
+#include <nlohmann/json.hpp>
 #include "RLNanoLeaf.h"
 #include "IMGUI/imgui_internal.h"
 #include "IMGUI/imgui_searchablecombo.h"
@@ -29,11 +29,11 @@ void RLNanoLeaf::onLoad()
 	cvarManager->registerCvar("cl_rln_teamGoalColor_enabled", "1", "NanoLeaf Goal Colors Based on Team Colors boolean", true, true, 0, true, 1);
 
 	//NanoLeaf IP Cvar
-	cvarManager->registerCvar("cl_rln_nanoLeafIP", "192.168.107.31", "NanoLeaf IP");
+	cvarManager->registerCvar("cl_rln_nanoLeafIP", "192.168.1.256", "NanoLeaf IP");
 	
 	//NanoLeaf Token
-	cvarManager->registerCvar("cl_rln_nanoLeaftoken", "UDXADsAqC55nZFA2bcvSL7vAGepHDICz", "NanoLeaf Auth Token");
-	cvarManager->registerCvar("cl_rln_panelIDs", "12345678", "NanoLeaf Panel IDs"); //May be used in the future for addressing individual panels
+	cvarManager->registerCvar("cl_rln_nanoLeaftoken", "NanoLeafToken", "NanoLeaf Auth Token");
+	cvarManager->registerCvar("cl_rln_panelIDs", "1 2 3 4 5", "NanoLeaf Panel IDs"); //May be used in the future for addressing individual panels
 
 
 	//Team CVARs

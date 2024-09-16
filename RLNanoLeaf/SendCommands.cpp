@@ -3,7 +3,6 @@
 #include "IMGUI/imgui_internal.h"
 #include "IMGUI/imgui_searchablecombo.h"
 #include "IMGUI/imgui_stdlib.h"
-#include "opencv2/opencv.hpp"
 
 
 
@@ -92,7 +91,7 @@ void RLNanoLeaf::SendCommands(std::string event, LinearColor color)
 
 
 
-	if (event == "test")
+	/*if (event == "test")
 	{
 	
 		CVarWrapper demoColorVar = cvarManager->getCvar("cl_rln_demo_color");
@@ -156,6 +155,7 @@ void RLNanoLeaf::SendCommands(std::string event, LinearColor color)
 	
 		return;
 	}
+	*/
 
 	//JSON formatting
 	CurlRequest req;

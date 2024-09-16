@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "nlohmann/json.hpp"
+#include <nlohmann/json.hpp>
 #include "RLNanoLeaf.h"
 #include "IMGUI/imgui_internal.h"
 #include "IMGUI/imgui_searchablecombo.h"

@@ -234,9 +234,9 @@ void RLNanoLeaf::RenderSettings() {
 		}
 
 
-		if (ImGui::Button("Test Lights")) {
+		if (ImGui::Button("Test Lights Using FreePlay Color")) {
 
-			RLNanoLeaf::SendCommands("test", demoColorVar.getColorValue());
+			RLNanoLeaf::SendCommands("test", freeplayColorVar.getColorValue());
 
 		}
 		//static ImVec4 color_hsv(0.23f, 1.0f, 1.0f, 1.0f);
