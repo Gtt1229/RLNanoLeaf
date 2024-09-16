@@ -142,7 +142,7 @@ void RLNanoLeaf::RenderSettings() {
 
 			}
 		}
-		if (ImGui::Button("Get Panels")) {
+		if (ImGui::Button("Get Panels (This is not used at this time)")) {
 
 			RLNanoLeaf::GetPanels();
 
