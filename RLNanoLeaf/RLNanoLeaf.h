@@ -45,7 +45,6 @@ class RLNanoLeaf: public BakkesMod::Plugin::BakkesModPlugin
 	void SetAuthToken(std::string token);
 	int GetScore(int teamNum);
 	std::vector<int> PanelIDsToVector(std::string panelIdsStr);
-	void GenerateSettingsFile();
 
 
 
