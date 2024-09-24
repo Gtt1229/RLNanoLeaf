@@ -6,6 +6,7 @@
 
 
 
+
 void RLNanoLeaf::SendCommands(std::string event, LinearColor color)
 {
 
@@ -23,46 +24,27 @@ void RLNanoLeaf::SendCommands(std::string event, LinearColor color)
 	if (!panelIDsCvar) { return; }
 	std::string panelIDsEx = panelIDsCvar.getStringValue();
 
-	////Get Linear Colors
-	//CVarWrapper haMyTeamPrimaryColorCVar = cvarManager->getCvar("cl_rln_myTeamPrimaryRGBColor");
-	//if (!haMyTeamPrimaryColorCVar) { return; }
-	//CVarWrapper haOtherTeamPrimaryColorCVar = cvarManager->getCvar("cl_rln_OtherTeamPrimaryRGBColor");
-	//if (!haOtherTeamPrimaryColorCVar) { return; }
-	//
-	//
-	//LinearColor myTeamPrimaryRGBColor = haMyTeamPrimaryColorCVar.getColorValue();
-	//
-	//LinearColor OtherTeamPrimaryRGBColor = haOtherTeamPrimaryColorCVar.getColorValue();
-	//
-	//
-	//
-	//RLNanoLeaf::RGB myrgb = { myTeamPrimaryRGBColor.R, myTeamPrimaryRGBColor.G, myTeamPrimaryRGBColor.B };
-	//
-	//
-	//RLNanoLeaf::HSV myhsv = rgb2hsv(myrgb);
-	//
-	//
-	//LOG("Hue: {}", myhsv.h);
-	//LOG("Sat: {}", myhsv.s);
-	//LOG("Bright: {}", myhsv.v);
-	//
-	//std::string myhue = std::to_string(myhsv.h);
-	//std::string mysat = std::to_string(myhsv.s);
-	//std::string mybright = std::to_string(myhsv.v);
+	CVarWrapper brightnessVar = cvarManager->getCvar("cl_rln_brightness");
+	if (!brightnessVar) { return; }
+	int brightnessAdjust = brightnessVar.getIntValue();
+	LOG("{}", brightnessAdjust);
+
+
+	CVarWrapper exitOffVar = cvarManager->getCvar("cl_rln_exit_off");
+	if (!exitOffVar) { return; }
 
 	RLNanoLeaf::RGB rgb = { color.R, color.G, color.B };
 
 
-	RLNanoLeaf::HSV hsv = rgb2hsv(rgb);
 
+	RLNanoLeaf::HSV hsv = rgb2hsv(rgb);
 	std::string hue = std::to_string(hsv.h);
 	std::string sat = std::to_string(hsv.s);
-	std::string bright = std::to_string(hsv.v);
 
-	//std::string playerScoreString = "0";
-	//std::string otherScoreString = "0";
-	//int playerScore = 0;
-	//int otherScore = 0;
+	//use brightness slider
+	int brightInt = brightnessAdjust;
+	std::string bright = std::to_string(brightInt);
+
 
 	if (!gameWrapper->IsInFreeplay()) {
 		//Current team CVAR
@@ -91,7 +73,7 @@ void RLNanoLeaf::SendCommands(std::string event, LinearColor color)
 
 
 
-	/*if (event == "test")
+	if (event == "test")
 	{
 	
 		CVarWrapper demoColorVar = cvarManager->getCvar("cl_rln_demo_color");
@@ -111,7 +93,8 @@ void RLNanoLeaf::SendCommands(std::string event, LinearColor color)
 	
 		std::string hue = std::to_string(hsv.h);
 		std::string sat = std::to_string(hsv.s);
-		std::string bright = std::to_string(hsv.v);
+		int brightInt = brightnessAdjust;
+		std::string bright = std::to_string(brightInt);
 	
 		LOG("Sending test");
 		std::string jsonBody = R"T(
@@ -155,7 +138,6 @@ void RLNanoLeaf::SendCommands(std::string event, LinearColor color)
 	
 		return;
 	}
-	*/
 
 	//JSON formatting
 	CurlRequest req;
@@ -172,7 +154,11 @@ void RLNanoLeaf::SendCommands(std::string event, LinearColor color)
 	        "value": )T" + sat + R"T(
 	    }
 	}
-	)T";;
+	)T";
+
+	bool exitOff = exitOffVar.getBoolValue();
+
+
 
 
 	LOG("RLNanoLeaf Sent:{}", jsonBody);
@@ -182,6 +168,21 @@ void RLNanoLeaf::SendCommands(std::string event, LinearColor color)
 	req.url = urlFormatted;
 	LOG("URL:{}", urlFormatted);
 	std::map<std::string, std::string> jsonHeader{ {"Content-Type", "application/json"} };
+
+
+	if (event == "exit" && exitOff)
+	{
+		jsonBody = R"T(
+		{
+		  "on": {
+		    "value": false
+		  }
+		}
+		)T";
+		req.url = urlFormatted + "/on";
+	}
+
+
 
 	req.headers = jsonHeader;
 
@@ -193,4 +194,79 @@ void RLNanoLeaf::SendCommands(std::string event, LinearColor color)
 		{
 			LOG("Body result(Generally empty): {}", result);
 		});
+}
+
+void RLNanoLeaf::SendCommands(std::string effect) {
+
+	CVarWrapper freeplayEffectVar = cvarManager->getCvar("cl_rln_freeplay_effect");
+	if (!freeplayEffectVar) { return; }
+	std::string freeplayEffect = freeplayEffectVar.getStringValue();
+
+	CVarWrapper overtimeEffectVar = cvarManager->getCvar("cl_rln_overtime_effect");
+	if (!overtimeEffectVar) { return; }
+	std::string overtimeEffect = overtimeEffectVar.getStringValue();
+
+	CVarWrapper mainmenuEffectVar = cvarManager->getCvar("cl_rln_mainmenu_effect");
+	if (!mainmenuEffectVar) { return; }
+	std::string mainmenuEffect = mainmenuEffectVar.getStringValue();
+
+	CVarWrapper exitEffectVar = cvarManager->getCvar("cl_rln_exit_effect");
+	if (!exitEffectVar) { return; }
+	std::string exitEffect = mainmenuEffectVar.getStringValue();
+
+
+
+	CVarWrapper nanoLeafIP = cvarManager->getCvar("cl_rln_nanoLeafIP");
+	if (!nanoLeafIP) { LOG("nanoLeafIP Check Failed"); return; }
+	std::string nanoLeafIPex = nanoLeafIP.getStringValue();
+
+
+	CVarWrapper nanoLeafToken = cvarManager->getCvar("cl_rln_nanoLeaftoken");
+	if (!nanoLeafToken) { return; }
+	std::string nanoLeafTokenex = nanoLeafToken.getStringValue();
+
+	CVarWrapper panelIDsCvar = cvarManager->getCvar("cl_rln_panelIDs");
+	if (!panelIDsCvar) { return; }
+	std::string panelIDsEx = panelIDsCvar.getStringValue();
+
+	std::string jsonBody = "";
+
+	if ( effect == "freeplay") {
+		jsonBody = R"T({"select" : ")T" + freeplayEffect + R"T("})T";
+	}
+
+	if (effect == "overtime") {
+		jsonBody = R"T({"select" : ")T" + mainmenuEffect + R"T("})T";
+	}
+
+	if (effect == "mainmenu") {
+		jsonBody = R"T({"select" : ")T" + overtimeEffect + R"T("})T";
+	}
+
+	if (effect == "exit") {
+		jsonBody = R"T({"select" : ")T" + exitEffect + R"T("})T";
+	}
+
+	//JSON formatting
+	CurlRequest req;
+
+	LOG("RLNanoLeaf Sent:{}", jsonBody);
+	req.verb = "PUT";
+
+	std::string urlFormatted = "http://" + nanoLeafIPex + ":16021/api/v1/" + nanoLeafTokenex + "/effects";
+	req.url = urlFormatted;
+	LOG("URL:{}", urlFormatted);
+	std::map<std::string, std::string> jsonHeader{ {"Content-Type", "text/plain"} };
+
+	req.headers = jsonHeader;
+
+	//LOG("{}", both);
+
+	req.body = jsonBody;
+
+	HttpWrapper::SendCurlRequest(req, [this](int code, std::string result)
+		{
+			LOG("Body result(Generally empty): {}", result);
+		});
+
 }

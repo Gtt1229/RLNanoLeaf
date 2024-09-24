@@ -15,3 +15,4 @@
 #include "IMGUI/imgui_rangeslider.h"
 
 #include "logging.h"
+#include <nlohmann/json.hpp>

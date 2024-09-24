@@ -4,10 +4,14 @@
 #include "IMGUI/imgui_internal.h"
 #include "IMGUI/imgui_searchablecombo.h"
 #include "IMGUI/imgui_stdlib.h"
+#include <filesystem>
+#include <fstream>
 
 BAKKESMOD_PLUGIN(RLNanoLeaf, "write a plugin description here", plugin_version, PLUGINTYPE_FREEPLAY)
 
 std::shared_ptr<CVarManagerWrapper> _globalCvarManager;
+
+
 
 void RLNanoLeaf::onLoad()
 {
@@ -23,6 +27,7 @@ void RLNanoLeaf::onLoad()
 	cvarManager->registerCvar("cl_rln_overtime_enabled", "1", "Enable NanoLeaf Overtime", true, true, 0, true, 1);
 	cvarManager->registerCvar("cl_rln_matchCountdown_enabled", "1", "Enable NanoLeaf Match Countdown", true, true, 0, true, 1);
 	cvarManager->registerCvar("cl_rln_exit_enabled", "1", "Enable NanoLeaf Exit", true, true, 0, true, 1);
+	cvarManager->registerCvar("cl_rln_exit_off", "0", "Enable NanoLeaf to Turn Off on Exit", true, true, 0, true, 1);
 	cvarManager->registerCvar("cl_rln_isReplay", "0", "NanoLeaf Replay boolean", true, true, 0, true, 1);
 	//cvarManager->registerCvar("cl_rln_logging", "0", "NanoLeaf Logging boolean", true, true, 0, true, 1);
 	cvarManager->registerCvar("cl_rln_teamDemoColor_enabled", "1", "NanoLeaf Demo Colors Based on Team Colors boolean", true, true, 0, true, 1);
@@ -51,7 +56,28 @@ void RLNanoLeaf::onLoad()
 	cvarManager->registerCvar("cl_rln_matchCountdown_color", "(255, 153, 0, 1)", "Match Countdown Lights Color");
 	cvarManager->registerCvar("cl_rln_exit_color", "(0, 0, 0, 1)", "Exit Lights Color");
 
+	//color brightness slider
+	cvarManager->registerCvar("cl_rln_brightness", "100", "Brightness",	true,true,0.0F,true,100.0F);
 
+	//Effects CVARs
+	cvarManager->registerCvar("cl_rln_effects_enabled", "0", "Use NanoLeaf effects instead of solid colors", true, true, 0, true, 1);
+	cvarManager->registerCvar("cl_rln_freeplay_effect", "effect1", "Freeplayer Effect Name");
+	cvarManager->registerCvar("cl_rln_overtime_effect", "effect1", "Overtime Effect Name");
+	cvarManager->registerCvar("cl_rln_mainmenu_effect", "effect1", "Main Menu Effect Name");
+	cvarManager->registerCvar("cl_rln_exit_effect", "effect1", "Exit Effect Name");
+
+
+
+
+	//NanoLeaf data files
+	this->dataDir = this->gameWrapper->GetDataFolder().append("RLNanoLeaf");
+	this->mainPath = std::filesystem::path(dataDir).append(this->mainFile);
+	this->tmpPath = std::filesystem::path(dataDir).append(this->tmpFile);
+	this->bakPath = std::filesystem::path(dataDir).append(this->bakFile);
+
+	this->cvarManager->registerNotifier("rlnanoleaf_reload", [this](const std::vector<std::string>& commands) {
+		LoadData();
+		}, "Reloads the json data from file", PERMISSION_ALL);
 
 
 	//Log plugin started
@@ -61,8 +87,7 @@ void RLNanoLeaf::onLoad()
 	this->LoadHooks();
 	//this->GetPanels();
 
-	//GenerateSettingsFile();
-
+	LoadData();
 
 
 }
@@ -104,6 +129,8 @@ void RLNanoLeaf::LoadHooks()
 	gameWrapper->HookEvent("Function GameEvent_Soccar_TA.ReplayPlayback.BeginState", std::bind(&RLNanoLeaf::Replay, this, std::placeholders::_1));
 	gameWrapper->HookEvent("Function GameEvent_Soccar_TA.ReplayPlayback.EndState", std::bind(&RLNanoLeaf::NotReplay, this, std::placeholders::_1));
 	//
+
+	RLNanoLeaf::GetEffects([this](const std::string& result) {});
 }
 
 
@@ -526,13 +553,24 @@ void RLNanoLeaf::FreeplayHook()
 	if (!freeplayColorVar) { return; }
 	LinearColor freeplayColor = freeplayColorVar.getColorValue();
 
+	CVarWrapper effectsEnableCvar = cvarManager->getCvar("cl_rln_effects_enabled");
+	if (!effectsEnableCvar) { return; }
+	bool effectsEnabbled = effectsEnableCvar.getBoolValue();
+
 	//May be redundant, but good to check
 	if (gameWrapper->IsInFreeplay()) {
+		if (effectsEnabbled) {
+			//send effect
+			SendCommands("freeplay");
+		}
+		else
+		{
+			//Send freeplay color
+			std::string event = "freeplay";
+			LOG("Sending freeplay commands");
+			SendCommands(event, freeplayColor);
+		}
 
-		//Send freeplay color
-		std::string event = "freeplay";
-		LOG("Sending freeplay commands");
-		SendCommands(event, freeplayColor);
 
 	}
 }
@@ -573,12 +611,23 @@ void RLNanoLeaf::MainMenuHook(std::string name)
 		CVarWrapper teamsEnabledCvar = cvarManager->getCvar("cl_rln_teams_enabled");
 		bool teamsEnabled = teamsEnabledCvar.getBoolValue();
 
-		if (teamsEnabled == true) {
-			LOG("Player in a game, using teamshook");
-			LoadTeams("loadteams");
-			return;
-		}
+		CVarWrapper effectsEnableCvar = cvarManager->getCvar("cl_rln_effects_enabled");
+		if (!effectsEnableCvar) { return; }
+		bool effectsEnabbled = effectsEnableCvar.getBoolValue();
 
+		if (effectsEnabbled) {
+			//send effect
+			SendCommands("mainmenu");
+		}
+		else
+		{
+
+			if (teamsEnabled == true) {
+				LOG("Player in a game, using teamshook");
+				LoadTeams("loadteams");
+				return;
+			}
+		}
 	}
 
 	CVarWrapper mainmenuColorVar = cvarManager->getCvar("cl_rln_mainmenu_color");
@@ -633,11 +682,21 @@ void RLNanoLeaf::OvertimeHook(std::string name)
 	if (!overtimeColorVar) { return; }
 	LinearColor overtimeColor = overtimeColorVar.getColorValue();
 
-	//Send overtime color
-	std::string event = "overtime";
-	LOG("Using Overtime Hook");
-	SendCommands(event, overtimeColor);
+	CVarWrapper effectsEnableCvar = cvarManager->getCvar("cl_rln_effects_enabled");
+	if (!effectsEnableCvar) { return; }
+	bool effectsEnabbled = effectsEnableCvar.getBoolValue();
 
+	//Send overtime color
+	if (effectsEnabbled) {
+		//send effect
+		SendCommands("overtime");
+	}
+	else
+	{
+		std::string event = "overtime";
+		LOG("Using Overtime Hook");
+		SendCommands(event, overtimeColor);
+	}
 
 
 }
@@ -736,4 +795,113 @@ void RLNanoLeaf::Log(std::string msg)
 {
 	//Send logs to BakkesMod console
 	cvarManager->log(msg);
+}
+
+
+
+void RLNanoLeaf::LoadData()
+{
+	// Upgrade old file path
+	if (std::filesystem::exists(this->mainFile)) {
+		Log("Upgrading old file path");
+		std::filesystem::create_directories(this->dataDir);
+		std::filesystem::rename(this->mainFile, this->mainPath);
+		std::filesystem::rename(this->bakFile, this->bakPath);
+	}
+
+	std::ifstream in(this->mainPath);
+	if (in.fail()) {
+		LOG("Failed to open file");
+		LOG(strerror(errno));
+		this->data["nanloeaf"] = json::object();
+		WriteData();
+		in.open(this->mainPath);
+	}
+
+	try {
+		in >> this->data;
+	}
+	catch (const nlohmann::detail::exception& e) {
+		in.close();
+		LOG("Failed to parse json");
+		LOG(e.what());
+	}
+
+	if (!this->data.contains("nanoleaf")) {
+		Log("Data doesn't contain nanoleaf");
+		this->data["nanoleaf"] = json::object();
+	}
+
+	Log("Successfully loaded existing data");
+
+	in.close();
+
+	WriteData();
+
+}
+
+
+void RLNanoLeaf::WriteData()
+{
+	LOG("WriteData");
+	std::filesystem::create_directories(this->dataDir);
+
+	std::ofstream out(this->tmpPath);
+	try {
+		out << this->data.dump(4, ' ', false, json::error_handler_t::replace) << std::endl;
+		out.close();
+		std::error_code err;
+		std::filesystem::remove(this->bakPath, err);
+		if (std::filesystem::exists(this->mainPath)) {
+			std::filesystem::rename(this->mainPath, this->bakPath, err);
+			if (err.value() != 0) {
+				LOG("Could not backup NanoLeaf Data");
+				LOG(err.message());
+				return;
+			}
+		}
+		std::filesystem::rename(this->tmpPath, this->mainPath, err);
+		if (err.value() != 0) {
+			LOG("Could not move NanoLeaf temp file to main");
+			LOG(err.message());
+			std::filesystem::rename(this->bakPath, this->mainPath, err);
+			return;
+		}
+	}
+	catch (const nlohmann::detail::exception& e) {
+		LOG("failed to serialize json");
+		LOG(e.what());
+	}
+	catch (...) {
+		LOG("failed to serialize json (unknown)");
+	}
+}
+
+void RLNanoLeaf::DisplayEffectPopup(const char* label, CVarWrapper& effectVar, std::vector<std::string>& effects) {
+	// Static variable to keep track of selected effect index for this specific popup
+	static int selectedEffect = -1;
+
+	// Button to open the popup
+	if (ImGui::Button(label)) {
+		ImGui::OpenPopup(label);
+	}
+
+	ImGui::SameLine();
+	std::string currentEffect = effectVar.getStringValue();
+	ImGui::TextUnformatted(currentEffect.empty() ? "<None>" : currentEffect.c_str());
+	// Create the simple popup for selecting effects
+	if (ImGui::BeginPopup(label)) {
+		for (int i = 0; i < effects.size(); i++) {
+			if (ImGui::Selectable(effects[i].c_str())) {
+				selectedEffect = i;  // Update the selected effect
+
+				// Set the selected effect using the effectVar
+				effectVar.setValue(effects[selectedEffect]);
+
+				LOG("Selected effect for {}: {}", label, effects[selectedEffect]);
+			}
+		}
+		ImGui::EndPopup();
+	}
+	cvarManager->executeCommand("writeconfig", false);
 }

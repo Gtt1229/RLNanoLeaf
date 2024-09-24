@@ -3,7 +3,8 @@
 #include "IMGUI/imgui_internal.h"
 #include "IMGUI/imgui_searchablecombo.h"
 #include "IMGUI/imgui_stdlib.h"
-
+#include <filesystem>
+#include <fstream>  
 
 
 // Plugin Settings Window code here
@@ -38,6 +39,7 @@ void RLNanoLeaf::RenderSettings() {
 	CVarWrapper freeplayEnableCvar = cvarManager->getCvar("cl_rln_freeplay_enabled");
 
 	CVarWrapper exitEnableCvar = cvarManager->getCvar("cl_rln_exit_enabled");
+	CVarWrapper exitOffCvar = cvarManager->getCvar("cl_rln_exit_off");
 
 	//CVarWrapper loggingEnableCvar = cvarManager->getCvar("cl_rln_logging");
 
@@ -53,6 +55,8 @@ void RLNanoLeaf::RenderSettings() {
 
 	CVarWrapper panelIDsCvar = cvarManager->getCvar("cl_rln_panelIDs");
 
+	CVarWrapper effectsEnableCvar = cvarManager->getCvar("cl_rln_effects_enabled");
+
 	if (!enableCvar) { return; }
 	if (!teamsEnableCvar) { return; }
 	if (!goalScoredEnableCvar) { return; }
@@ -60,12 +64,14 @@ void RLNanoLeaf::RenderSettings() {
 	if (!demosEnableCvar) { return; }
 	if (!freeplayEnableCvar) { return; }
 	if (!exitEnableCvar) { return; }
+	if (!exitOffCvar) { return; }
 	//if (!loggingEnableCvar) { return; }
 	if (!teamDemoColorEnableCvar) { return; }
 	if (!teamGoalColorEnableCvar) { return; }
 	if (!mainmenuEnableCvar) { return; }
 	if (!matchCountdownEnableCvar) { return; }
 	if (!panelIDsCvar) { return; }
+	if (!effectsEnableCvar) { return; }
 
 	//Colors
 	CVarWrapper demoColorVar = cvarManager->getCvar("cl_rln_demo_color");
@@ -82,11 +88,27 @@ void RLNanoLeaf::RenderSettings() {
 	if (!matchCountdownColorVar) { return; }
 	CVarWrapper exitColorVar = cvarManager->getCvar("cl_rln_exit_color");
 	if (!exitColorVar) { return; }
+	CVarWrapper brightnessVar = cvarManager->getCvar("cl_rln_brightness");
+	if (!brightnessVar) { return; }
+	int brightness = brightnessVar.getIntValue();
+	//Effects
+
+	CVarWrapper freeplayEffectVar = cvarManager->getCvar("cl_rln_freeplay_effect");
+	if (!freeplayEffectVar) { return; }
+	CVarWrapper overtimeEffectVar = cvarManager->getCvar("cl_rln_overtime_effect");
+	if (!overtimeEffectVar) { return; }
+	CVarWrapper mainmenuEffectVar = cvarManager->getCvar("cl_rln_mainmenu_effect");
+	if (!mainmenuEffectVar) { return; }
+	CVarWrapper exitEffectVar = cvarManager->getCvar("cl_rln_exit_effect");
+	if (!exitEffectVar) { return; }
 
 
 
 	bool enabled = enableCvar.getBoolValue();
 	bool hideURL = hideURLCvar.getBoolValue();
+	bool exitOff = exitOffCvar.getBoolValue();
+	bool exitEffect = exitEffectVar.getBoolValue();
+	bool effectsEnabled = effectsEnableCvar.getBoolValue();
 	//Enable plugin checkbox
 
 	if (ImGui::Checkbox("Enable plugin", &enabled)) {
@@ -138,7 +160,7 @@ void RLNanoLeaf::RenderSettings() {
 		if (hideURL == false) {
 			if (ImGui::InputText("NanoLeaf Token", &nanoLeafTokenex)) {
 
-				//nanoLeafTokenCvar.setValue(nanoLeafTokenex);
+				nanoLeafTokenCvar.setValue(nanoLeafTokenex);
 
 			}
 		}
@@ -168,6 +190,14 @@ void RLNanoLeaf::RenderSettings() {
 		bool teamGoalColorenabled = teamGoalColorEnableCvar.getBoolValue();
 
 
+		static int brightnessSlider = brightnessVar.getIntValue();
+		if (ImGui::SliderInt("slider int", &brightnessSlider, 0, 100)) {
+
+			brightnessVar.setValue(brightnessSlider);
+
+		}
+
+
 		if (ImGui::Checkbox("Enable Demos Based on Teams' Color", &teamDemoColorenabled)) {
 			teamDemoColorEnableCvar.setValue(teamDemoColorenabled);
 		}
@@ -181,6 +211,7 @@ void RLNanoLeaf::RenderSettings() {
 			ImGui::SameLine(200); if (ImGui::ColorEdit4("Demos Color", &demoColor.R, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel))
 			{
 				demoColorVar.setValue(demoColor * 255);
+				SendCommands("teamDemoed", demoColor);
 			}
 
 		}
@@ -199,40 +230,55 @@ void RLNanoLeaf::RenderSettings() {
 			ImGui::SameLine(150); if (ImGui::ColorEdit4("Goals Color", &goalScoredColor.R, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel))
 			{
 				goalScoredColorVar.setValue(goalScoredColor * 255);
+				SendCommands("goalscored", goalScoredColor);
 			}
 
 		}
+		if (!effectsEnabled) {
+			ImGui::Text("Freeplay Color:");
+			ImGui::SameLine(150); if (ImGui::ColorEdit4("Freeplay Color", &freeplayColor.R, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel))
+			{
+				freeplayColorVar.setValue(freeplayColor * 255);
+				SendCommands("freeplay", freeplayColor);
+			}
 
-		ImGui::Text("Freeplay Color:");
-		ImGui::SameLine(150); if (ImGui::ColorEdit4("Freeplay Color", &freeplayColor.R, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel))
-		{
-			freeplayColorVar.setValue(freeplayColor * 255);
+			ImGui::Text("Main Menu Color:");
+			ImGui::SameLine(150); if (ImGui::ColorEdit4("Main Menu Color", &mainmenuColor.R, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel))
+			{
+				mainmenuColorVar.setValue(mainmenuColor * 255);
+				SendCommands("mainmenu", mainmenuColor);
+			}
 		}
-
-		ImGui::Text("Main Menu Color:");
-		ImGui::SameLine(150); if (ImGui::ColorEdit4("Main Menu Color", &mainmenuColor.R, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel))
-		{
-			mainmenuColorVar.setValue(mainmenuColor * 255);
+		if (!effectsEnabled) {
+			ImGui::Text("Overtime Color:");
+			ImGui::SameLine(150); if (ImGui::ColorEdit4("Overtime Color", &overtimeColor.R, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel))
+			{
+				overtimeColorVar.setValue(overtimeColor * 255);
+				SendCommands("overtime", overtimeColor);
+			}
 		}
-
-		ImGui::Text("Overtime Color:");
-		ImGui::SameLine(150); if (ImGui::ColorEdit4("Overtime Color", &overtimeColor.R, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel))
-		{
-			overtimeColorVar.setValue(overtimeColor * 255);
-		}
-
 		ImGui::Text("Match Countdown Color:");
 		ImGui::SameLine(150); if (ImGui::ColorEdit4("Match Countdown Color", &matchCountdownColor.R, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel))
 		{
 			matchCountdownColorVar.setValue(matchCountdownColor * 255);
+			SendCommands("matchcountdown", matchCountdownColor);
 		}
 
-		ImGui::Text("Exit Color:");
-		ImGui::SameLine(150); if (ImGui::ColorEdit4("Exit Color", &exitColor.R, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel))
-		{
-			exitColorVar.setValue(exitColor * 255);
-		}
+		if (!effectsEnabled) {
+			if (ImGui::Checkbox("Turn off NanoLeaf on Exit", &exitOff)) {
+				exitOffCvar.setValue(exitOff);
+			}
 
+			if (!exitOff)
+			{
+				ImGui::Text("Exit Color:");
+				ImGui::SameLine(150); if (ImGui::ColorEdit4("Exit Color", &exitColor.R, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel))
+				{
+					exitColorVar.setValue(exitColor * 255);
+					SendCommands("exit", exitColor);
+				}
+			}
+		}
 
 		if (ImGui::Button("Test Lights Using FreePlay Color")) {
 
@@ -246,7 +292,72 @@ void RLNanoLeaf::RenderSettings() {
 		//ImGui::ColorEdit4("HSV shown as HSV##1", (float*)&color_hsv, ImGuiColorEditFlags_DisplayHSV | ImGuiColorEditFlags_InputHSV | ImGuiColorEditFlags_Float);
 		//ImGui::DragFloat4("Raw HSV values", (float*)&color_hsv, 0.01f, 0.0f, 1.0f);
 
-	
+		ImGui::SeparatorEx(ImGuiSeparatorFlags_Horizontal);
+
+
+		if (ImGui::Checkbox("Use NanoLeaf Effects", &effectsEnabled)) {
+			effectsEnableCvar.setValue(effectsEnabled);
+		}
+		if (ImGui::IsItemHovered()) {
+			ImGui::SetTooltip("Toggle the use of NanoLeaf Effects");
+		}
+		if (effectsEnabled) {
+			if (ImGui::TreeNode("Effects based colors")) {
+
+				std::vector<std::string> effects;
+
+				// Populate the effects
+				try {
+					for (const auto& effect : this->data["nanoleaf"]["effects"]) {
+						effects.push_back(effect.get<std::string>());
+					}
+				}
+				catch (const std::exception& e) {
+					LOG("Error while loading effects: {}", e.what());
+					return;
+				}
+
+				if (ImGui::Button("Get Effects List")) {
+					RLNanoLeaf::GetEffects([this](const std::string& result) {});
+				}
+
+				ImGui::SameLine();
+
+				// Prepare the effects list as a single string for display
+				std::string effectsList;
+				for (const auto& effect : effects) {
+					effectsList += effect + "\n"; // Add each effect to a string
+				}
+
+				// Display the effects list
+				if (!effectsList.empty()) {
+					ImGui::InputTextMultiline("##EffectsList", &effectsList[0], effectsList.size(), ImVec2(300, 100), ImGuiInputTextFlags_ReadOnly);
+				}
+				else {
+					ImGui::Text("No effects fetched yet.");
+				}
+
+				// Display popups for each CVar
+				DisplayEffectPopup("Main Menu Effect", mainmenuEffectVar, effects);
+				DisplayEffectPopup("Overtime Effect", overtimeEffectVar, effects);
+				DisplayEffectPopup("Freeplay Effect", freeplayEffectVar, effects);
+
+				if (ImGui::Checkbox("Turn off NanoLeaf on Exit", &exitOff)) {
+					exitOffCvar.setValue(exitOff);
+				}
+				if (!exitOff) {
+					DisplayEffectPopup("Exit Effect", exitEffectVar, effects);
+				}
+
+				ImGui::TreePop();
+			}
+		}
+
+
+
+
+
+
 		ImGui::Spacing();
 		ImGui::SeparatorEx(ImGuiSeparatorFlags_Horizontal);
 		if (ImGui::CollapsingHeader("Enable Configuration Items"))
