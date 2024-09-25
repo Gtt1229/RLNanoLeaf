@@ -27,7 +27,7 @@ void RLNanoLeaf::onLoad()
 	cvarManager->registerCvar("cl_rln_overtime_enabled", "1", "Enable NanoLeaf Overtime", true, true, 0, true, 1);
 	cvarManager->registerCvar("cl_rln_matchCountdown_enabled", "1", "Enable NanoLeaf Match Countdown", true, true, 0, true, 1);
 	cvarManager->registerCvar("cl_rln_exit_enabled", "1", "Enable NanoLeaf Exit", true, true, 0, true, 1);
-	cvarManager->registerCvar("cl_rln_exit_off", "0", "Enable NanoLeaf to Turn Off on Exit", true, true, 0, true, 1);
+	cvarManager->registerCvar("cl_rln_exit_off", "1", "Enable NanoLeaf to Turn Off on Exit", true, true, 0, true, 1);
 	cvarManager->registerCvar("cl_rln_isReplay", "0", "NanoLeaf Replay boolean", true, true, 0, true, 1);
 	//cvarManager->registerCvar("cl_rln_logging", "0", "NanoLeaf Logging boolean", true, true, 0, true, 1);
 	cvarManager->registerCvar("cl_rln_teamDemoColor_enabled", "1", "NanoLeaf Demo Colors Based on Team Colors boolean", true, true, 0, true, 1);
@@ -152,6 +152,20 @@ void RLNanoLeaf::LoadTeams(std::string name)
 	if (isReplay == true) { Log("It's a replay"); return; }
 
 
+	////////overtime vars
+	CVarWrapper overtimeEnabledCvar = cvarManager->getCvar("cl_rln_overtime_enabled");
+	bool overtimeEnabled = overtimeEnabledCvar.getBoolValue();
+	if (!overtimeEnabled) { LOG("Overtime Lights are not enabled"); return; }
+
+	CVarWrapper overtimeColorVar = cvarManager->getCvar("cl_rln_overtime_color");
+	if (!overtimeColorVar) { return; }
+	LinearColor overtimeColor = overtimeColorVar.getColorValue();
+
+	CVarWrapper effectsEnableCvar = cvarManager->getCvar("cl_rln_effects_enabled");
+	if (!effectsEnableCvar) { return; }
+	bool effectsEnabbled = effectsEnableCvar.getBoolValue();
+	////////overtime vars
+
 
 	//Get player team and primary color
 	if (gameWrapper->IsInFreeplay()) {
@@ -264,6 +278,26 @@ void RLNanoLeaf::LoadTeams(std::string name)
 
 		CVarWrapper ha_otherTeam = cvarManager->getCvar("cl_rln_otherTeam");
 		if (!ha_otherTeam) { return; }
+
+
+
+		//overtime logic
+		bool isOvertime = (bool)server.GetbOverTime();
+
+		if (isOvertime) {
+			std::string event = "overtime";
+
+			if (effectsEnabbled) {
+				SendCommands(event);
+				return;
+			}
+			SendCommands(event, overtimeColor);
+			return;
+		}
+		//overtime logic
+
+
+
 
 
 		//Send based on home or away team

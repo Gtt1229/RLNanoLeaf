@@ -235,11 +235,11 @@ void RLNanoLeaf::SendCommands(std::string effect) {
 		jsonBody = R"T({"select" : ")T" + freeplayEffect + R"T("})T";
 	}
 
-	if (effect == "overtime") {
+	if (effect == "mainmenu") {
 		jsonBody = R"T({"select" : ")T" + mainmenuEffect + R"T("})T";
 	}
 
-	if (effect == "mainmenu") {
+	if (effect == "overtime") {
 		jsonBody = R"T({"select" : ")T" + overtimeEffect + R"T("})T";
 	}
 
