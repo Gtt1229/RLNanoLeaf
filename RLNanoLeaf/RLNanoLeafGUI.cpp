@@ -135,14 +135,40 @@ void RLNanoLeaf::RenderSettings() {
 
 			}
 		}
+		ImGui::SameLine();
+		if (ImGui::Button("Start Discovery")) {
+			showModal = true; // Open modal
+			GetNanoLeafIP();  // Start discovery
+		}
 
+		// modal check
+		if (showModal) {
+			ImGui::OpenPopup("Discovering NanoLeaf IP");
+		}
 
+		// Render the modal
+		if (ImGui::BeginPopupModal("Discovering NanoLeaf IP", NULL, ImGuiWindowFlags_AlwaysAutoResize)) {
+			ImGui::Text("Discovering NanoLeaf services...");
+			ImGui::Separator();
 
+			// Display some feedback to the user
+			ImGui::Text("Please wait...");
+
+			// Close modal on complete
+			if (!isGettingIP) {
+				ImGui::CloseCurrentPopup();
+				showModal = false;
+			}
+
+			ImGui::EndPopup();
+		}
+
+		ImGui::Spacing();
 		ImGui::Text("To receive your NanoLeaf Authentication Token:");
 
-		ImGui::Text("1. Hold down power button for 5-7 seconds\n       Controller lights should flash");
+		ImGui::Text("1. Hold down power button for 5-7 seconds\n       a. Controller light should flash");
 
-
+		ImGui::Spacing();
 		ImGui::Text("2."); ImGui::SameLine();
 
 		if (ImGui::Button("Generate NanoLeaf Token")) {
@@ -152,7 +178,7 @@ void RLNanoLeaf::RenderSettings() {
 
 		}
 
-
+		ImGui::Spacing();
 
 		if (!nanoLeafTokenCvar) { return; }
 		std::string nanoLeafTokenex = nanoLeafTokenCvar.getStringValue();
@@ -164,16 +190,21 @@ void RLNanoLeaf::RenderSettings() {
 
 			}
 		}
-		if (ImGui::Button("Get Panels (This is not used at this time)")) {
+		ImGui::Spacing();
+		ImGui::Text("This is not used at this time, but can be used to test connectivity");
+		ImGui::SameLine();
+		if (ImGui::Button("Get Panels")) {
 
 			RLNanoLeaf::GetPanels();
 
 		}
 
+		ImGui::Spacing();
+
 
 		std::string panelIDsEx = panelIDsCvar.getStringValue();
 		ImGui::Text("Curent Panels:"); ImGui::SameLine(); ImGui::InputText("", &panelIDsEx);
-
+		ImGui::Spacing();
 		ImGui::SeparatorEx(ImGuiSeparatorFlags_Horizontal);
 		//Color Settings
 
@@ -189,13 +220,14 @@ void RLNanoLeaf::RenderSettings() {
 		bool teamDemoColorenabled = teamDemoColorEnableCvar.getBoolValue();
 		bool teamGoalColorenabled = teamGoalColorEnableCvar.getBoolValue();
 
-
+		ImGui::Spacing();
 		static int brightnessSlider = brightnessVar.getIntValue();
-		if (ImGui::SliderInt("slider int", &brightnessSlider, 0, 100)) {
+		if (ImGui::SliderInt("Universal Brightness. Does not affect effects.", &brightnessSlider, 0, 100)) {
 
 			brightnessVar.setValue(brightnessSlider);
 
 		}
+		ImGui::Spacing();
 
 
 		if (ImGui::Checkbox("Enable Demos Based on Teams' Color", &teamDemoColorenabled)) {
@@ -234,6 +266,10 @@ void RLNanoLeaf::RenderSettings() {
 			}
 
 		}
+
+		ImGui::TextColored(ImVec4(1.0f, 0.702f, 0.0f, 1.0f), "WARNING:"); ImGui::SameLine(); ImGui::Text("Do not drag the color picker! Will cause NanoLeaf to block commands for a period of time!");
+
+
 		if (!effectsEnabled) {
 			ImGui::Text("Freeplay Color:");
 			ImGui::SameLine(150); if (ImGui::ColorEdit4("Freeplay Color", &freeplayColor.R, ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel))

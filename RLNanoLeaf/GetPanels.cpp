@@ -68,11 +68,6 @@ void RLNanoLeaf::GetPanels() {
 	
 			}
 		});
-
-
-
-
-
 }
 
 
@@ -158,4 +153,33 @@ void RLNanoLeaf::GetEffects(GetEffectsCallback callback) {
         });
 
     WriteData();
+}
+
+
+void RLNanoLeaf::GetNanoLeafIP() {
+    //start of call
+    isGettingIP = true;
+
+    // new thread?
+    std::thread([this]() {
+        CVarWrapper nanoLeafIPCvar = cvarManager->getCvar("cl_rln_nanoLeafIP");
+        //check null cvar
+        if (!nanoLeafIPCvar) {
+            isGettingIP = false;
+            return;
+        }
+
+        char* services = get_nanoleaf_services();
+        if (services) {
+            LOG("Discovered Services:{}", services);
+            nanoLeafIPCvar.setValue(services);
+            free(services);
+        }
+        else {
+            LOG("Failed to discover services.");
+        }
+
+        //finished
+        isGettingIP = false;
+        }).detach(); // Detach the thread so it runs independently
 }
