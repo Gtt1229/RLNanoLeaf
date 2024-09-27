@@ -8,7 +8,7 @@
 #include <vector>
 #include <functional>
 #include <memory>
-
+#include <future>
 #include "IMGUI/imgui.h"
 #include "IMGUI/imgui_stdlib.h"
 #include "IMGUI/imgui_searchablecombo.h"

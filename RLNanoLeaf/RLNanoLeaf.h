@@ -14,6 +14,11 @@
 #include <filesystem>
 #include <optional>
 
+
+
+
+
+
 constexpr auto plugin_version = stringify(VERSION_MAJOR) "." stringify(VERSION_MINOR) "." stringify(VERSION_PATCH) "." stringify(VERSION_BUILD);
 
 using json = nlohmann::json;
@@ -50,6 +55,7 @@ class RLNanoLeaf: public BakkesMod::Plugin::BakkesModPlugin
 	void SendCommands(std::string effect);
 	void GetAuthToken();
 	void GetPanels();
+	void GetNanoLeafIP();
 	void SetAuthToken(std::string token);
 	int GetScore(int teamNum);
 	std::vector<int> PanelIDsToVector(std::string panelIdsStr);
@@ -94,6 +100,8 @@ private:
 	json data;
 	//Logging method
 	void Log(std::string msg);
+	std::atomic<bool> isGettingIP{ false };
+	bool showModal = false;
 
 	inline static auto mainFile = "nanoleafData.json";
 	inline static auto tmpFile = "nanoleafData.json.tmp";
@@ -106,3 +114,16 @@ private:
 	void LoadData();
 	void WriteData();
 };
+
+
+#pragma comment(lib, "Ws2_32.lib")
+#pragma comment(lib, "iphlpapi.lib")
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+	char* get_nanoleaf_services();
+
+#ifdef __cplusplus
+}
+#endif

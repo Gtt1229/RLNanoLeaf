@@ -96,6 +96,9 @@
     <ClCompile Include="HSV2RGB.cpp">
       <Filter>Plugin\src</Filter>
     </ClCompile>
+    <ClCompile Include="mdns.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="imgui\imgui_rangeslider.h">

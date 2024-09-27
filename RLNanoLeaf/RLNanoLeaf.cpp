@@ -61,10 +61,10 @@ void RLNanoLeaf::onLoad()
 
 	//Effects CVARs
 	cvarManager->registerCvar("cl_rln_effects_enabled", "0", "Use NanoLeaf effects instead of solid colors", true, true, 0, true, 1);
-	cvarManager->registerCvar("cl_rln_freeplay_effect", "effect1", "Freeplayer Effect Name");
-	cvarManager->registerCvar("cl_rln_overtime_effect", "effect1", "Overtime Effect Name");
-	cvarManager->registerCvar("cl_rln_mainmenu_effect", "effect1", "Main Menu Effect Name");
-	cvarManager->registerCvar("cl_rln_exit_effect", "effect1", "Exit Effect Name");
+	cvarManager->registerCvar("cl_rln_freeplay_effect", "FreeplayEffect", "Freeplayer Effect Name");
+	cvarManager->registerCvar("cl_rln_overtime_effect", "OvertimeEffect", "Overtime Effect Name");
+	cvarManager->registerCvar("cl_rln_mainmenu_effect", "MainMenuEffect", "Main Menu Effect Name");
+	cvarManager->registerCvar("cl_rln_exit_effect", "ExitEffect", "Exit Effect Name");
 
 
 

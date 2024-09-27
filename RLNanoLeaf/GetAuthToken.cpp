@@ -52,8 +52,7 @@ void RLNanoLeaf::SetAuthToken(std::string token) {
 	CVarWrapper nanoLeafToken = cvarManager->getCvar("cl_rln_nanoLeaftoken");
 	if (!nanoLeafToken) { LOG("nanoLeafToken Check Failed"); return; }
 
-	//add brackets to jsonReply, since it doesn't come back bracketed for some reason
-	std::string jsonStr = "{" + token + "}";
+	std::string jsonStr = token;
 
 	//// Parse the JSON
 	try {
