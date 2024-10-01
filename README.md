@@ -4,7 +4,7 @@ BakkesMod Plugin to integrate Rocket League events with NanoLeafs
 If you *really* want to buy me a coffee: [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/gtt1229)
 
 
-## Discord: [Rocket League Assistant](https://discord.gg/hXrJTuKQ)
+## Discord: [Rocket League Assistant](https://discord.gg/qxWh36hY6K)
 
 ![rlnanobanner](https://github.com/user-attachments/assets/cee2e19f-f2d3-4ec8-a1c9-1db895a8eb62)
 
