@@ -33,11 +33,13 @@ void RLNanoLeaf::SendCommands(std::string event, LinearColor color)
 	CVarWrapper exitOffVar = cvarManager->getCvar("cl_rln_exit_off");
 	if (!exitOffVar) { return; }
 
+
 	RLNanoLeaf::RGB rgb = { color.R, color.G, color.B };
 
 
-
+	LOG("test before convert");
 	RLNanoLeaf::HSV hsv = rgb2hsv(rgb);
+	LOG("test after convert");
 	std::string hue = std::to_string(hsv.h);
 	std::string sat = std::to_string(hsv.s);
 
@@ -49,17 +51,17 @@ void RLNanoLeaf::SendCommands(std::string event, LinearColor color)
 	if (!gameWrapper->IsInFreeplay()) {
 		//Current team CVAR
 	//get current team cvar
-		CVarWrapper ha_playersTeam = cvarManager->getCvar("ha_playersTeam");
-		if (!ha_playersTeam) { return; }
+		CVarWrapper ha_playersTeam = cvarManager->getCvar("cl_rln_playersTeam");
+		if (!ha_playersTeam) { LOG("no player team"); return; }
 		//
-		auto haplayersTeam = cvarManager->getCvar("ha_playersTeam");
+		auto haplayersTeam = cvarManager->getCvar("cl_rln_playersTeam");
 		int haplayersTeam2 = haplayersTeam.getIntValue();
 
 		//get current otherteam cvar
-		CVarWrapper ha_otherTeam = cvarManager->getCvar("ha_otherTeam");
-		if (!ha_otherTeam) { return; }
+		CVarWrapper ha_otherTeam = cvarManager->getCvar("cl_rln_otherTeam");
+		if (!ha_otherTeam) { LOG("no other player team"); return; }
 		//
-		auto haotherTeam = cvarManager->getCvar("ha_otherTeam");
+		auto haotherTeam = cvarManager->getCvar("cl_rln_otherTeam");
 		int haotherTeam2 = haotherTeam.getIntValue();
 
 		//LOG("Team nums:{}", haplayersTeam2);
@@ -75,17 +77,17 @@ void RLNanoLeaf::SendCommands(std::string event, LinearColor color)
 
 	if (event == "test")
 	{
-	
-		CVarWrapper demoColorVar = cvarManager->getCvar("cl_rln_demo_color");
-		if (!demoColorVar) { return; }
-		LinearColor demoColor = demoColorVar.getColorValue();
+		LOG("even is test");
+		CVarWrapper freeplayColorVar = cvarManager->getCvar("cl_rln_freeplay_color");
+		if (!freeplayColorVar) { return; }
+		LinearColor freeplayColor = freeplayColorVar.getColorValue();
 		
 	
-		RLNanoLeaf::RGB rgb = { demoColor.R, demoColor.G, demoColor.B };
+		RLNanoLeaf::RGB rgb = { freeplayColor.R, freeplayColor.G, freeplayColor.B };
 	
-	
+		LOG("testbeforeconvert");
 		RLNanoLeaf::HSV hsv = rgb2hsv(rgb);
-	
+		LOG("testafterout");
 	
 		LOG("Hue: {}", hsv.h);
 		LOG("Sat: {}", hsv.s);
@@ -117,7 +119,7 @@ void RLNanoLeaf::SendCommands(std::string event, LinearColor color)
 		req.verb = "PUT";
 	
 	
-		auto reqUrlJSON = cvarManager->getCvar("ha_jsonURL");
+		auto reqUrlJSON = cvarManager->getCvar("cl_rln_nanoLeafIP");
 		std::string reqUrlJSONString = reqUrlJSON.getStringValue();
 	
 		std::string urlFormatted = "http://" + nanoLeafIPex + ":16021/api/v1/" + nanoLeafTokenex + "/state";
