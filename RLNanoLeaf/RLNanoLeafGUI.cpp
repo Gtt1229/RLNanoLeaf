@@ -68,6 +68,9 @@ void RLNanoLeaf::RenderSettings() {
 	//if (!loggingEnableCvar) { return; }
 	if (!teamDemoColorEnableCvar) { return; }
 	if (!teamGoalColorEnableCvar) { return; }
+	if (!nanoLeafIPCvar) { return; }
+	if (!nanoLeafTokenCvar) { return; }
+	if (!hideURLCvar) { return; }
 	if (!mainmenuEnableCvar) { return; }
 	if (!matchCountdownEnableCvar) { return; }
 	if (!panelIDsCvar) { return; }
@@ -254,7 +257,6 @@ void RLNanoLeaf::RenderSettings() {
 		if (ImGui::IsItemHovered()) {
 			ImGui::SetTooltip("Toggle Effect");
 		}
-
 
 		if (!teamGoalColorenabled) {
 
