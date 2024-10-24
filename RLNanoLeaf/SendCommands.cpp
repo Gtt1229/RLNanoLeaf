@@ -80,7 +80,6 @@ void RLNanoLeaf::SendCommands(std::string event, LinearColor color)
 		if (!freeplayColorVar) { return; }
 		LinearColor freeplayColor = freeplayColorVar.getColorValue();
 		
-	
 		RLNanoLeaf::RGB rgb = { freeplayColor.R, freeplayColor.G, freeplayColor.B };
 	
 		RLNanoLeaf::HSV hsv = rgb2hsv(rgb);
