@@ -3,9 +3,9 @@
 #define VERSION_MINOR 0
 #define VERSION_PATCH 0
 
-#define VERSION_BUILD 522
+#define VERSION_BUILD 541
 
-#define VERSION_BUILD 522
+#define VERSION_BUILD 541
 
 
 #define stringify(a) stringify_(a)

@@ -419,7 +419,7 @@ char* get_nanoleaf_services() {
 	int ret = send_mdns_query(query, query_count);
 
 	if (ret != 0) {
-		snprintf(results, 64, "Error performing mDNS query\n");
+		snprintf(results, 64, "Error performing mDNS query");
 	}
 	else {
 		// Check if we found an IP address
@@ -428,7 +428,7 @@ char* get_nanoleaf_services() {
 			snprintf(results, 64, "%s", ip_address);
 		}
 		else {
-			snprintf(results, 64, "No IP address found\n");
+			snprintf(results, 64, "No IP address found");
 		}
 	}
 

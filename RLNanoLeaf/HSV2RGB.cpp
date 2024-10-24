@@ -20,7 +20,6 @@ RLNanoLeaf::HSV RLNanoLeaf::rgb2hsv(const RGB& in) {
     double min = std::min({ r, g, b });
     double max = std::max({ r, g, b });
     double delta = max - min;
-
     // Value (brightness)
     out.v = static_cast<int>(max * 100);
 
@@ -43,6 +42,6 @@ RLNanoLeaf::HSV RLNanoLeaf::rgb2hsv(const RGB& in) {
 
     if (out.h < 0)
         out.h += 360;
-
+    
     return out;
 }

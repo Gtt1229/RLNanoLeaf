@@ -32,6 +32,7 @@ void RLNanoLeaf::onLoad()
 	//cvarManager->registerCvar("cl_rln_logging", "0", "NanoLeaf Logging boolean", true, true, 0, true, 1);
 	cvarManager->registerCvar("cl_rln_teamDemoColor_enabled", "1", "NanoLeaf Demo Colors Based on Team Colors boolean", true, true, 0, true, 1);
 	cvarManager->registerCvar("cl_rln_teamGoalColor_enabled", "1", "NanoLeaf Goal Colors Based on Team Colors boolean", true, true, 0, true, 1);
+	cvarManager->registerCvar("hideURL", "false", "HideURL boolean", true, true, 0, true, 1);
 
 	//NanoLeaf IP Cvar
 	cvarManager->registerCvar("cl_rln_nanoLeafIP", "192.168.1.256", "NanoLeaf IP");
@@ -226,18 +227,18 @@ void RLNanoLeaf::LoadTeams(std::string name)
 		TeamWrapper otherTeam = teams.Get(otherteamnum);
 
 
-		//set other team's number based on player's current team number
-		if (teamnum == 0) {
-
-			otherteamnum = 1;
-			TeamWrapper otherTeam = teams.Get(otherteamnum);
-		}
-
-		if (teamnum == 1) {
-
-			otherteamnum = 0;
-			TeamWrapper otherTeam = teams.Get(otherteamnum);
-		}
+		////set other team's number based on player's current team number
+		//if (teamnum == 0) {
+		//
+		//	otherteamnum = 1;
+		//	TeamWrapper otherTeam = teams.Get(otherteamnum);
+		//}
+		//
+		//if (teamnum == 1) {
+		//
+		//	otherteamnum = 0;
+		//	TeamWrapper otherTeam = teams.Get(otherteamnum);
+		//}
 
 		//Get player's team's linear color
 		LinearColor primaryColor = myTeam.GetPrimaryColor();
