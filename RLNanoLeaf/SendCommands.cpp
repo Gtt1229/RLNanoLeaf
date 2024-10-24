@@ -83,7 +83,6 @@ void RLNanoLeaf::SendCommands(std::string event, LinearColor color)
 	
 		RLNanoLeaf::RGB rgb = { freeplayColor.R, freeplayColor.G, freeplayColor.B };
 	
-		LOG("testbeforeconvert");
 		RLNanoLeaf::HSV hsv = rgb2hsv(rgb);
 	
 		LOG("Hue: {}", hsv.h);
